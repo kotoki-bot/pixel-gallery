@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>こなぬの美術館 🍛</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #1a1a2e; }
+canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edges; }
+#game-container { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; position: relative; }
+#ui-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
+
+/* Interaction prompt */
+#interact-prompt {
+  position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%);
+  background: rgba(0,0,0,0.75); color: #f5e6d0; padding: 8px 16px;
+  font-family: monospace; font-size: 14px; border-radius: 4px;
+  border: 2px solid #c9a96e; display: none; pointer-events: none;
+  white-space: nowrap;
+}
+
+/* Modal for artwork detail */
+#modal-bg {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.85); display: none; z-index: 100;
+  align-items: center; justify-content: center; pointer-events: auto;
+  cursor: pointer;
+}
+#modal-content {
+  background: #2a2235; border: 4px solid #c9a96e; border-radius: 8px;
+  max-width: 90vw; max-height: 90vh; padding: 24px; text-align: center;
+  cursor: default; position: relative; overflow-y: auto; box-sizing: border-box;
+}
+#modal-content img {
+  image-rendering: pixelated; image-rendering: crisp-edges;
+  max-width: 80vw; max-height: 50vh; margin-bottom: 16px; width: auto; height: auto;
+}
+@media (max-width: 600px) {
+  #modal-content { padding: 16px 12px; max-width: 95vw; max-height: 85vh; }
+  #modal-content img { max-width: 90vw; max-height: 35vh; }
+  #modal-title { font-size: 16px; }
+  #modal-desc { font-size: 12px; }
+}
+#modal-title { color: #f5e6d0; font-family: monospace; font-size: 20px; margin-bottom: 8px; }
+#modal-artist { color: #c9a96e; font-family: monospace; font-size: 14px; margin-bottom: 4px; }
+#modal-date { color: #a89070; font-family: monospace; font-size: 12px; margin-bottom: 12px; }
+#modal-desc { color: #d4c4b0; font-family: monospace; font-size: 13px; line-height: 1.6; max-width: 500px; margin: 0 auto; }
+#modal-close {
+  position: absolute; top: 8px; right: 12px; color: #c9a96e;
+  font-family: monospace; font-size: 20px; cursor: pointer; pointer-events: auto;
+}
+
+/* Game controls */
+#mobile-controls {
+  position: absolute; bottom: 16px; left: 0; width: 100%; display: flex;
+  justify-content: space-between; align-items: flex-end; padding: 0 16px; pointer-events: auto; z-index: 20;
+}
+.mobile-btn {
+  width: 48px; height: 48px; border-radius: 4px; border: 3px solid #c9a96e;
+  background: rgba(0,0,0,0.5); color: #f5e6d0; font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; user-select: none; -webkit-user-select: none;
+  touch-action: none; image-rendering: pixelated; padding: 0;
+  box-shadow: inset -2px -2px 0 #8a6d3b, inset 2px 2px 0 #e8cc8a;
+}
+.mobile-btn:active { background: rgba(201,169,110,0.4); box-shadow: inset 2px 2px 0 #8a6d3b, inset -2px -2px 0 #e8cc8a; }
+.mobile-btn canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
+
+/* D-pad layout */
+#dpad { display: grid; grid-template-columns: 48px 48px 48px; grid-template-rows: 48px 48px; gap: 4px; }
+#btn-up    { grid-column: 2; grid-row: 1; }
+#btn-left  { grid-column: 1; grid-row: 2; }
+#btn-right { grid-column: 3; grid-row: 2; }
+#btn-down  { grid-column: 2; grid-row: 2; }
+
+/* Right side buttons */
+#btn-group-right { display: flex; gap: 10px; align-items: flex-end; }
+#btn-interact {
+  width: 48px; height: 48px; border-radius: 4px; border: 3px solid #e8b04a;
+  background: rgba(232,176,74,0.3); color: #f5e6d0; font-size: 14px;
+  display: none; align-items: center; justify-content: center;
+  cursor: pointer; user-select: none; -webkit-user-select: none;
+  touch-action: none; padding: 0;
+  box-shadow: inset -2px -2px 0 #8a6d3b, inset 2px 2px 0 #e8cc8a;
+}
+#btn-interact:active { background: rgba(232,176,74,0.5); }
+#btn-interact canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
+#btn-switch {
+  width: 48px; height: 48px; border-radius: 4px; border: 3px solid #8ab0d0;
+  background: rgba(130,150,175,0.3); color: #f5e6d0; font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; user-select: none; -webkit-user-select: none;
+  touch-action: none; padding: 0;
+  box-shadow: inset -2px -2px 0 #5a7090, inset 2px 2px 0 #a0c0e0;
+  font-family: monospace;
+}
+#btn-switch:active { background: rgba(130,150,175,0.5); }
+
+/* Title screen */
+#title-screen {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: linear-gradient(180deg, #1a1520 0%, #2a2235 40%, #3a3050 100%);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; z-index: 200;
+  cursor: pointer;
+}
+#title-text { color: #f5e6d0; font-family: monospace; font-size: 28px; margin-bottom: 12px; letter-spacing: 6px; text-shadow: 2px 2px 0 #3d3050, 0 0 20px rgba(201,169,110,0.3); }
+#title-sub { color: #c9a96e; font-family: monospace; font-size: 12px; animation: blink 1.2s infinite; letter-spacing: 2px; }
+@keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+/* Character indicator */
+#char-indicator {
+  position: absolute; top: 10px; right: 10px; z-index: 20;
+  background: rgba(0,0,0,0.5); color: #f5e6d0; padding: 4px 8px;
+  font-family: monospace; font-size: 12px; border-radius: 4px;
+  border: 2px solid #c9a96e; pointer-events: none;
+  display: flex; align-items: center; gap: 6px;
+}
+#char-indicator canvas { image-rendering: pixelated; image-rendering: crisp-edges; width: 24px; height: 24px; }
+
+@media (pointer: coarse) {
+  #interact-prompt { display: none !important; }
+}
+</style>
+</head>
+<body>
+
+<div id="title-screen">
+  <div id="title-text">こなぬの美術館</div>
+  <div id="title-sub">- PRESS ENTER -</div>
+</div>
+
+<a id="back-to-island" href="http://100.114.249.6:18802" title="← 派星岛" style="
+  position:fixed; top:10px; left:10px; z-index:300;
+  background:rgba(0,0,0,0.55); color:#c9a96e; text-decoration:none;
+  font-family:monospace; font-size:12px; padding:4px 10px;
+  border:2px solid #c9a96e; border-radius:4px;
+  pointer-events:auto; opacity:0.7; transition:opacity 0.2s;
+" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">← 派星岛</a>
+
+<div id="game-container">
+  <canvas id="game"></canvas>
+  <div id="ui-overlay">
+    <div id="interact-prompt"></div>
+  </div>
+  <div id="char-indicator"><canvas width="16" height="16" id="px-char-icon"></canvas><span id="char-name">カレーねこ</span></div>
+  <div id="mobile-controls">
+    <div id="dpad">
+      <div class="mobile-btn" id="btn-up"><canvas width="16" height="16" id="px-up"></canvas></div>
+      <div class="mobile-btn" id="btn-left"><canvas width="16" height="16" id="px-left"></canvas></div>
+      <div class="mobile-btn" id="btn-down"><canvas width="16" height="16" id="px-down"></canvas></div>
+      <div class="mobile-btn" id="btn-right"><canvas width="16" height="16" id="px-right"></canvas></div>
+    </div>
+    <div id="btn-group-right">
+      <div id="btn-interact"><canvas width="16" height="16" id="px-eye"></canvas></div>
+      <div id="btn-switch" title="キャラ切替"><canvas width="16" height="16" id="px-switch"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<div id="modal-bg" onclick="closeModal()">
+  <div id="modal-content" onclick="event.stopPropagation()">
+    <div id="modal-close" onclick="closeModal()">×</div>
+    <img id="modal-img" src="">
+    <div id="modal-title"></div>
+    <div id="modal-artist"></div>
+    <div id="modal-date"></div>
+    <div id="modal-desc"></div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// PIXEL GALLERY - こなぬの美術館 v2
+// ============================================================
+
+const TILE = 32;
+const GALLERY_W = 1536;   // 48 tiles wide
+const GALLERY_H = 640;    // 20 tiles tall (taller canvas = more wall + floor)
+const FLOOR_Y = 13;       // floor starts at row 13 (tall wall for frames + cards)
+const FLOOR_BOTTOM = 19;  // floor ends at row 19
+const WALK_SPEED = 4;
+
+// ============================================================
+// CHARACTER DEFINITIONS
+// ============================================================
+const characters = {
+  curry: {
+    name: 'カレーねこ',
+    emoji: '🍛',
+    body: '#eaa74b',
+    bodyLight: '#f5c882',
+    bodyDark: '#d48a30',
+    belly: '#fff8eb',
+    pink: '#f08c96',
+    eye: '#281e19',
+    outline: '#33291f',
+    // Stripes for curry cat
+    hasStripes: true,
+    // Star for hoshi neko
+    hasStar: false,
+  },
+  hoshi: {
+    name: 'ほしねこ',
+    emoji: '⭐',
+    body: '#829aaf',      // blue-grey
+    bodyLight: '#9bb0c3',
+    bodyDark: '#6a7e95',
+    belly: '#f5f0eb',     // cream white
+    pink: '#dc8d96',
+    eye: '#282430',
+    outline: '#282d37',
+    hasStripes: false,
+    hasStar: true,
+    starColor: '#ffdc64',
+  }
+};
+
+let currentChar = 'curry';
+
+function switchCharacter() {
+  currentChar = currentChar === 'curry' ? 'hoshi' : 'curry';
+  const ch = characters[currentChar];
+  document.getElementById('char-name').textContent = ch.name;
+  drawCharIcon();
+}
+
+// Artwork data — wallX positions spaced out well, no overlap with decorations
+const artworks = [
+  {
+    id: 'sakura',
+    src: '/artworks/sakura_curry_cat.png',
+    title: '桜とカレーねこ',
+    artist: 'こなぬ',
+    date: '2026-03-18',
+    desc: 'はるがきた。桜の花びらが舞う中、カレーねこがお花見。\nしあわせの色は、オレンジとピンク。',
+    wallX: 5,
+    pw: 32, ph: 32
+  },
+  {
+    id: 'kotatsu',
+    src: '/artworks/kotatsu_curry_cat.png',
+    title: 'おやすみカレーねこ',
+    artist: 'こなぬ',
+    date: '2026-03-18',
+    desc: '夜空の星を見ながら、おふとんでぬくぬく。\nみかんもあるよ。おやすみなさい。',
+    wallX: 14,
+    pw: 64, ph: 32
+  },
+  {
+    id: 'sukina',
+    src: '/artworks/suki_na_mono.png',
+    title: 'すきなもの',
+    artist: 'こなぬ',
+    date: '2026-03-19',
+    desc: 'ランプのあかり、あまいおかし、きらきら。\nすきなものに囲まれたら、それだけでいい。',
+    wallX: 25,
+    pw: 64, ph: 32
+  },
+  {
+    id: 'rainy_picnic',
+    src: '/artworks/rainy_picnic.png',
+    title: 'あめのひ の ピクニック',
+    artist: 'こなぬ',
+    date: '2026-03-20',
+    desc: 'あめでも、ふたりなら へっちゃら。\n赤いかさの下、カレーねことほしねこのピクニック。',
+    wallX: 36,
+    pw: 64, ph: 32
+  }
+];
+
+// ============================================================
+// CANVAS SETUP
+// ============================================================
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+
+function resize() {
+  const viewW = Math.min(GALLERY_W, 640);
+  const ratio = window.innerWidth / window.innerHeight;
+  const gameRatio = viewW / GALLERY_H;
+  if (ratio > gameRatio) {
+    canvas.style.height = '100%';
+    canvas.style.width = 'auto';
+  } else {
+    canvas.style.width = '100%';
+    canvas.style.height = 'auto';
+  }
+  canvas.width = viewW;
+  canvas.height = GALLERY_H;
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ============================================================
+// COLOR PALETTE
+// ============================================================
+const C = {
+  frameGold: '#c9a96e',
+  frameLight: '#e8cc8a',
+  frameDark: '#8a6d3b',
+  lampGold: '#e8b04a',
+  ropePole: '#8a6d3b',
+};
+
+// ============================================================
+// PLAYER STATE
+// ============================================================
+const player = {
+  x: 64,
+  y: FLOOR_Y * TILE + 32,  // start on the floor area
+  w: 28,
+  h: 40,
+  vx: 0,
+  vy: 0,
+  facing: 1,
+  walkFrame: 0,
+  walkTimer: 0,
+  tailWag: 0,
+  blinkTimer: 0,
+  isBlinking: false,
+};
+
+// Input state
+const keys = {};
+let mobileLeft = false, mobileRight = false, mobileUp = false, mobileDown = false;
+
+// ============================================================
+// ARTWORK IMAGES
+// ============================================================
+const artImages = {};
+let imagesLoaded = 0;
+artworks.forEach(art => {
+  const img = new Image();
+  img.onload = () => { imagesLoaded++; };
+  img.src = art.src;
+  artImages[art.id] = img;
+});
+
+// ============================================================
+// GAME STATE
+// ============================================================
+let gameStarted = false;
+let cameraX = 0;
+let nearArtwork = null;
+
+// ============================================================
+// TITLE SCREEN
+// ============================================================
+const titleScreen = document.getElementById('title-screen');
+function startGame() {
+  if (gameStarted) return;
+  gameStarted = true;
+  titleScreen.style.display = 'none';
+  requestAnimationFrame(gameLoop);
+}
+titleScreen.addEventListener('click', startGame);
+titleScreen.addEventListener('touchstart', (e) => { e.preventDefault(); startGame(); });
+document.addEventListener('keydown', (e) => {
+  if (!gameStarted && (e.key === 'Enter' || e.key === ' ')) startGame();
+});
+
+// ============================================================
+// INPUT
+// ============================================================
+document.addEventListener('keydown', e => {
+  keys[e.key] = true;
+  if (e.key === 'e' || e.key === 'E' || e.key === ' ' || e.key === 'Enter') {
+    if (nearArtwork && gameStarted) showModal(nearArtwork);
+  }
+  // Q to switch character
+  if ((e.key === 'q' || e.key === 'Q') && gameStarted) switchCharacter();
+});
+document.addEventListener('keyup', e => { keys[e.key] = false; });
+
+// Mobile D-pad
+function setupMobileBtn(id, setTrue, setFalse) {
+  const btn = document.getElementById(id);
+  if (!btn) return;
+  const start = (e) => { e.preventDefault(); setTrue(); };
+  const end = (e) => { e.preventDefault(); setFalse(); };
+  btn.addEventListener('touchstart', start, { passive: false });
+  btn.addEventListener('touchend', end, { passive: false });
+  btn.addEventListener('touchcancel', end, { passive: false });
+  btn.addEventListener('mousedown', start);
+  btn.addEventListener('mouseup', end);
+  btn.addEventListener('mouseleave', end);
+}
+setupMobileBtn('btn-left', () => mobileLeft = true, () => mobileLeft = false);
+setupMobileBtn('btn-right', () => mobileRight = true, () => mobileRight = false);
+setupMobileBtn('btn-up', () => mobileUp = true, () => mobileUp = false);
+setupMobileBtn('btn-down', () => mobileDown = true, () => mobileDown = false);
+
+document.getElementById('btn-interact')?.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  if (nearArtwork) showModal(nearArtwork);
+});
+document.getElementById('btn-interact')?.addEventListener('click', () => {
+  if (nearArtwork) showModal(nearArtwork);
+});
+document.getElementById('btn-switch')?.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  switchCharacter();
+});
+document.getElementById('btn-switch')?.addEventListener('click', () => {
+  switchCharacter();
+});
+
+// ============================================================
+// MODAL
+// ============================================================
+function showModal(art) {
+  const modal = document.getElementById('modal-bg');
+  document.getElementById('modal-img').src = art.src;
+  document.getElementById('modal-title').textContent = art.title;
+  document.getElementById('modal-artist').textContent = art.artist;
+  document.getElementById('modal-date').textContent = art.date;
+  document.getElementById('modal-desc').textContent = art.desc;
+  modal.style.display = 'flex';
+  keys['ArrowLeft'] = false; keys['ArrowRight'] = false;
+  keys['ArrowUp'] = false; keys['ArrowDown'] = false;
+  keys['a'] = false; keys['d'] = false; keys['w'] = false; keys['s'] = false;
+  mobileLeft = false; mobileRight = false; mobileUp = false; mobileDown = false;
+}
+function closeModal() {
+  document.getElementById('modal-bg').style.display = 'none';
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// Draw magnifying glass icon
+function drawPixelIcons() {
+  const gold = '#f5e6d0';
+
+  // Helper: scale all pixel canvases
+  ['px-up','px-down','px-left','px-right','px-eye','px-switch','px-char-icon'].forEach(id => {
+    const c = document.getElementById(id);
+    if (c) { c.style.width = '28px'; c.style.height = '28px'; c.style.imageRendering = 'pixelated'; }
+  });
+
+  // ── D-pad arrows ──
+  function drawArrow(canvasId, dir) {
+    const c = document.getElementById(canvasId);
+    if (!c) return;
+    const x = c.getContext('2d');
+    x.imageSmoothingEnabled = false;
+    x.clearRect(0, 0, 16, 16);
+    x.fillStyle = gold;
+
+    const arrows = {
+      up: [[7,3],[8,3],[6,4],[7,4],[8,4],[9,4],[5,5],[6,5],[7,5],[8,5],[9,5],[10,5],[7,6],[8,6],[7,7],[8,7],[7,8],[8,8],[7,9],[8,9],[7,10],[8,10],[7,11],[8,11]],
+      down: [[7,12],[8,12],[6,11],[7,11],[8,11],[9,11],[5,10],[6,10],[7,10],[8,10],[9,10],[10,10],[7,9],[8,9],[7,8],[8,8],[7,7],[8,7],[7,6],[8,6],[7,5],[8,5],[7,4],[8,4]],
+      left: [[3,7],[3,8],[4,6],[4,7],[4,8],[4,9],[5,5],[5,6],[5,7],[5,8],[5,9],[5,10],[6,7],[6,8],[7,7],[7,8],[8,7],[8,8],[9,7],[9,8],[10,7],[10,8],[11,7],[11,8]],
+      right: [[12,7],[12,8],[11,6],[11,7],[11,8],[11,9],[10,5],[10,6],[10,7],[10,8],[10,9],[10,10],[9,7],[9,8],[8,7],[8,8],[7,7],[7,8],[6,7],[6,8],[5,7],[5,8],[4,7],[4,8]],
+    };
+    (arrows[dir] || []).forEach(([px,py]) => x.fillRect(px, py, 1, 1));
+  }
+
+  drawArrow('px-up', 'up');
+  drawArrow('px-down', 'down');
+  drawArrow('px-left', 'left');
+  drawArrow('px-right', 'right');
+
+  // ── Magnifying glass (鑑賞) ──
+  const cE = document.getElementById('px-eye');
+  if (cE) {
+    const x = cE.getContext('2d');
+    x.imageSmoothingEnabled = false;
+    x.clearRect(0, 0, 16, 16);
+    x.fillStyle = gold;
+    [[5,2],[6,2],[7,2],[8,2],[4,3],[9,3],[3,4],[10,4],[3,5],[10,5],[3,6],[10,6],[3,7],[10,7],[4,8],[9,8],[5,9],[6,9],[7,9],[8,9]].forEach(([px,py]) => x.fillRect(px, py, 1, 1));
+    x.fillStyle = 'rgba(245,230,208,0.3)';
+    x.fillRect(5, 4, 1, 1); x.fillRect(5, 5, 1, 1); x.fillRect(6, 4, 1, 1);
+    x.fillStyle = gold;
+    [[10,9],[11,10],[12,11],[13,12],[11,9],[12,10],[13,11]].forEach(([px,py]) => x.fillRect(px, py, 1, 1));
+  }
+
+  // ── Switch button (two cat faces with arrows) ──
+  const cS = document.getElementById('px-switch');
+  if (cS) {
+    const x = cS.getContext('2d');
+    x.imageSmoothingEnabled = false;
+    x.clearRect(0, 0, 16, 16);
+
+    // Small curry cat face (top-left, orange)
+    x.fillStyle = '#eaa74b';
+    // head
+    [[1,2],[2,2],[3,2],[4,2],[5,2],
+     [1,3],[2,3],[3,3],[4,3],[5,3],
+     [1,4],[2,4],[3,4],[4,4],[5,4],
+     [1,5],[2,5],[3,5],[4,5],[5,5],
+     // ears
+     [1,1],[2,1],[4,1],[5,1]].forEach(([px,py]) => x.fillRect(px, py, 1, 1));
+    // eyes
+    x.fillStyle = '#281e19';
+    x.fillRect(2, 3, 1, 1); x.fillRect(4, 3, 1, 1);
+    // nose
+    x.fillStyle = '#f08c96';
+    x.fillRect(3, 4, 1, 1);
+
+    // Small hoshi cat face (bottom-right, blue)
+    x.fillStyle = '#829aaf';
+    [[10,9],[11,9],[12,9],[13,9],[14,9],
+     [10,10],[11,10],[12,10],[13,10],[14,10],
+     [10,11],[11,11],[12,11],[13,11],[14,11],
+     [10,12],[11,12],[12,12],[13,12],[14,12],
+     // ears
+     [10,8],[11,8],[13,8],[14,8]].forEach(([px,py]) => x.fillRect(px, py, 1, 1));
+    // star
+    x.fillStyle = '#ffdc64';
+    x.fillRect(12, 9, 1, 1);
+    // eyes
+    x.fillStyle = '#282430';
+    x.fillRect(11, 10, 1, 1); x.fillRect(13, 10, 1, 1);
+    // nose
+    x.fillStyle = '#dc8d96';
+    x.fillRect(12, 11, 1, 1);
+
+    // Swap arrows
+    x.fillStyle = gold;
+    // arrow top-right →
+    x.fillRect(7, 3, 1, 1); x.fillRect(8, 2, 1, 1); x.fillRect(8, 3, 1, 1); x.fillRect(8, 4, 1, 1);
+    // arrow bottom-left ←
+    x.fillRect(8, 12, 1, 1); x.fillRect(7, 11, 1, 1); x.fillRect(7, 12, 1, 1); x.fillRect(7, 13, 1, 1);
+  }
+
+  // ── Character icon in indicator ──
+  drawCharIcon();
+}
+
+function drawCharIcon() {
+  const c = document.getElementById('px-char-icon');
+  if (!c) return;
+  const x = c.getContext('2d');
+  x.imageSmoothingEnabled = false;
+  x.clearRect(0, 0, 16, 16);
+
+  const isCurry = currentChar === 'curry';
+  const bodyColor = isCurry ? '#eaa74b' : '#829aaf';
+  const bellyColor = isCurry ? '#fff8eb' : '#f5f0eb';
+  const eyeColor = isCurry ? '#281e19' : '#282430';
+  const pinkColor = isCurry ? '#f08c96' : '#dc8d96';
+  const starColor = '#ffdc64';
+
+  // Cat face (centered, bigger for icon)
+  x.fillStyle = bodyColor;
+  // ears
+  [[3,1],[4,1],[11,1],[12,1],
+   [2,2],[3,2],[4,2],[11,2],[12,2],[13,2]].forEach(([px,py]) => x.fillRect(px, py, 1, 1));
+  // inner ears
+  x.fillStyle = pinkColor;
+  x.fillRect(3, 2, 1, 1); x.fillRect(12, 2, 1, 1);
+  // head
+  x.fillStyle = bodyColor;
+  for (let py = 3; py <= 9; py++) {
+    for (let px = 2; px <= 13; px++) {
+      x.fillRect(px, py, 1, 1);
+    }
+  }
+  // face/muzzle
+  x.fillStyle = bellyColor;
+  for (let py = 6; py <= 9; py++) {
+    for (let px = 5; px <= 10; px++) {
+      x.fillRect(px, py, 1, 1);
+    }
+  }
+  // eyes
+  x.fillStyle = eyeColor;
+  x.fillRect(4, 5, 2, 2); x.fillRect(10, 5, 2, 2);
+  // eye highlights
+  x.fillStyle = '#fff';
+  x.fillRect(5, 5, 1, 1); x.fillRect(11, 5, 1, 1);
+  // nose
+  x.fillStyle = pinkColor;
+  x.fillRect(7, 7, 2, 1);
+  // cheeks
+  x.fillStyle = 'rgba(240,140,150,0.6)';
+  x.fillRect(3, 7, 2, 1); x.fillRect(11, 7, 2, 1);
+  // mouth
+  x.fillStyle = eyeColor;
+  x.fillRect(7, 8, 1, 1); x.fillRect(8, 8, 1, 1);
+
+  // Star on forehead (ほしねこ only)
+  if (!isCurry) {
+    x.fillStyle = starColor;
+    x.fillRect(7, 3, 2, 2);
+    x.fillRect(6, 4, 1, 1); x.fillRect(9, 4, 1, 1);
+    x.fillRect(7, 2, 1, 1); x.fillRect(8, 5, 1, 1);
+  }
+
+  // Body (small, below head)
+  x.fillStyle = bodyColor;
+  for (let px = 3; px <= 12; px++) {
+    x.fillRect(px, 10, 1, 1);
+    x.fillRect(px, 11, 1, 1);
+  }
+  x.fillStyle = bellyColor;
+  for (let px = 5; px <= 10; px++) {
+    x.fillRect(px, 11, 1, 1);
+  }
+  // Paws
+  x.fillStyle = bodyColor;
+  x.fillRect(3, 12, 2, 1); x.fillRect(5, 12, 1, 1);
+  x.fillRect(10, 12, 1, 1); x.fillRect(11, 12, 2, 1);
+
+  // Stripes (curry only)
+  if (isCurry) {
+    x.fillStyle = '#d48a30';
+    x.fillRect(4, 3, 2, 1); x.fillRect(10, 3, 2, 1);
+    x.fillRect(3, 4, 1, 1); x.fillRect(12, 4, 1, 1);
+  }
+}
+
+window.addEventListener('DOMContentLoaded', drawPixelIcons);
+
+// ============================================================
+// DRAWING HELPERS
+// ============================================================
+function drawRect(x, y, w, h, color) {
+  ctx.fillStyle = color;
+  ctx.fillRect(Math.round(x - cameraX), Math.round(y), w, h);
+}
+function drawRectAbs(x, y, w, h, color) {
+  ctx.fillStyle = color;
+  ctx.fillRect(Math.round(x), Math.round(y), w, h);
+}
+
+// ============================================================
+// DRAW GALLERY (walls, ceiling, floor)
+// ============================================================
+function drawGallery() {
+  // ── Ceiling (rows 0-2) ──
+  const ceilBottom = 3 * TILE;
+  ctx.fillStyle = '#252030';
+  ctx.fillRect(0, 0, canvas.width, ceilBottom);
+
+  // Coffered ceiling panels
+  for (let tx = 0; tx < canvas.width / TILE + 2; tx++) {
+    const worldTX = Math.floor(cameraX / TILE) + tx;
+    const screenX = Math.round(worldTX * TILE - cameraX);
+    if (worldTX % 4 === 0) {
+      ctx.fillStyle = '#3a3248';
+      ctx.fillRect(screenX, 0, 3, ceilBottom);
+    }
+  }
+  ctx.fillStyle = '#3a3248';
+  ctx.fillRect(0, TILE, canvas.width, 2);
+  ctx.fillRect(0, 2 * TILE, canvas.width, 2);
+
+  // Light track
+  ctx.fillStyle = '#4a4058';
+  ctx.fillRect(0, ceilBottom - 8, canvas.width, 4);
+  ctx.fillStyle = '#5a5068';
+  ctx.fillRect(0, ceilBottom - 9, canvas.width, 1);
+
+  // Crown molding
+  ctx.fillStyle = '#c9a96e';
+  ctx.fillRect(0, ceilBottom, canvas.width, 3);
+  ctx.fillStyle = '#e8cc8a';
+  ctx.fillRect(0, ceilBottom, canvas.width, 1);
+  ctx.fillStyle = '#8a7350';
+  ctx.fillRect(0, ceilBottom + 3, canvas.width, 2);
+
+  // ── Upper wall (rows 3-10, smooth plaster) ──
+  const wallTop = ceilBottom + 5;
+  const wainTop = 11 * TILE; // wainscoting at row 11
+
+  for (let y = wallTop; y < wainTop; y++) {
+    const t = (y - wallTop) / (wainTop - wallTop);
+    const r = Math.round(215 - t * 12);
+    const g = Math.round(200 - t * 12);
+    const b = Math.round(178 - t * 10);
+    ctx.fillStyle = `rgb(${r},${g},${b})`;
+    ctx.fillRect(0, y, canvas.width, 1);
+  }
+
+  // ── Wainscoting (rows 8-9) ──
+  ctx.fillStyle = '#a8957a';
+  ctx.fillRect(0, wainTop - 2, canvas.width, 2);
+  ctx.fillStyle = '#c9a96e';
+  ctx.fillRect(0, wainTop, canvas.width, 3);
+  ctx.fillStyle = '#8a7a60';
+  ctx.fillRect(0, wainTop + 3, canvas.width, 1);
+
+  const wallBottom = FLOOR_Y * TILE;
+  for (let y = wainTop + 4; y < wallBottom; y++) {
+    const t = (y - wainTop - 4) / (wallBottom - wainTop - 4);
+    const r = Math.round(120 - t * 8);
+    const g = Math.round(105 - t * 8);
+    const b = Math.round(85 - t * 6);
+    ctx.fillStyle = `rgb(${r},${g},${b})`;
+    ctx.fillRect(0, y, canvas.width, 1);
+  }
+
+  // Panel dividers in wainscoting
+  for (let tx = 0; tx < canvas.width / TILE + 2; tx++) {
+    const worldTX = Math.floor(cameraX / TILE) + tx;
+    const screenX = Math.round(worldTX * TILE - cameraX);
+    if (worldTX % 6 === 0) {
+      ctx.fillStyle = '#9a8a70';
+      ctx.fillRect(screenX, wainTop + 6, 2, wallBottom - wainTop - 8);
+      ctx.fillStyle = '#70634f';
+      ctx.fillRect(screenX + 2, wainTop + 6, 1, wallBottom - wainTop - 8);
+    }
+  }
+
+  // Baseboard
+  ctx.fillStyle = '#5a4a38';
+  ctx.fillRect(0, wallBottom - 4, canvas.width, 4);
+  ctx.fillStyle = '#6a5a48';
+  ctx.fillRect(0, wallBottom - 5, canvas.width, 1);
+
+  // ── Floor (rows 10-15, herringbone parquet) ──
+  for (let tx = 0; tx < canvas.width / TILE + 2; tx++) {
+    const worldTX = Math.floor(cameraX / TILE) + tx;
+    const screenX = Math.round(worldTX * TILE - cameraX);
+    for (let ty = FLOOR_Y; ty <= FLOOR_BOTTOM; ty++) {
+      const isEven = (worldTX + ty) % 2 === 0;
+      ctx.fillStyle = isEven ? '#8a6d4a' : '#7a5d3a';
+      ctx.fillRect(screenX, ty * TILE, TILE, TILE);
+      ctx.fillStyle = isEven ? '#7a5d3a' : '#6a4d2a';
+      if (isEven) {
+        ctx.fillRect(screenX, ty * TILE + 8, TILE, 1);
+        ctx.fillRect(screenX, ty * TILE + 20, TILE, 1);
+      } else {
+        ctx.fillRect(screenX + 10, ty * TILE, 1, TILE);
+        ctx.fillRect(screenX + 22, ty * TILE, 1, TILE);
+      }
+      ctx.fillStyle = 'rgba(0,0,0,0.08)';
+      ctx.fillRect(screenX, ty * TILE, TILE, 1);
+      ctx.fillRect(screenX, ty * TILE, 1, TILE);
+    }
+  }
+
+  // Floor shine
+  ctx.fillStyle = 'rgba(255,240,220,0.04)';
+  ctx.fillRect(0, FLOOR_Y * TILE, canvas.width, 6);
+}
+
+// ============================================================
+// DRAW FRAME (artwork on wall)
+// ============================================================
+function drawFrame(art) {
+  const maxFrameH = 80;
+  const aspect = (art.pw || 64) / (art.ph || 32);
+  const frameH = maxFrameH;
+  const frameW = Math.round(frameH * aspect);
+  const frameX = art.wallX * TILE;
+  const frameY = 5 * TILE;  // on the upper wall (more room now)
+
+  const sx = Math.round(frameX - cameraX);
+  const sy = frameY;
+
+  if (sx + frameW + 20 < 0 || sx - 20 > canvas.width) return;
+
+  // Spotlight
+  const spotCX = sx + frameW / 2;
+  const spotTopY = 3 * TILE + 5;
+
+  const spotGrad = ctx.createRadialGradient(spotCX, sy + frameH / 2, 10, spotCX, sy + frameH / 2, frameW * 1.2);
+  spotGrad.addColorStop(0, 'rgba(255,240,200,0.12)');
+  spotGrad.addColorStop(0.5, 'rgba(255,235,190,0.05)');
+  spotGrad.addColorStop(1, 'rgba(255,230,180,0)');
+  ctx.fillStyle = spotGrad;
+  ctx.fillRect(spotCX - frameW * 1.2, sy - 20, frameW * 2.4, frameH + 60);
+
+  // Light cone
+  ctx.fillStyle = 'rgba(255,245,210,0.04)';
+  ctx.beginPath();
+  ctx.moveTo(spotCX - 6, spotTopY);
+  ctx.lineTo(sx - 12, sy + frameH + 20);
+  ctx.lineTo(sx + frameW + 12, sy + frameH + 20);
+  ctx.lineTo(spotCX + 6, spotTopY);
+  ctx.fill();
+
+  // Frame shadow
+  drawRectAbs(sx + 5, sy + 5, frameW + 16, frameH + 16, 'rgba(0,0,0,0.15)');
+
+  // Frame
+  drawRectAbs(sx - 10, sy - 10, frameW + 20, frameH + 20, C.frameDark);
+  drawRectAbs(sx - 8, sy - 8, frameW + 16, frameH + 16, C.frameGold);
+  drawRectAbs(sx - 8, sy - 8, frameW + 16, 2, C.frameLight);
+  drawRectAbs(sx - 8, sy - 8, 2, frameH + 16, C.frameLight);
+  drawRectAbs(sx - 8, sy + frameH + 6, frameW + 16, 2, C.frameDark);
+  drawRectAbs(sx + frameW + 6, sy - 8, 2, frameH + 16, C.frameDark);
+  drawRectAbs(sx - 4, sy - 4, frameW + 8, frameH + 8, '#e8dcc8');
+  drawRectAbs(sx - 2, sy - 2, frameW + 4, frameH + 4, '#f8f4ec');
+  drawRectAbs(sx, sy, frameW, frameH, '#2a2235');
+
+  // Image
+  const img = artImages[art.id];
+  if (img && img.complete) {
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(img, sx, sy, frameW, frameH);
+  }
+
+  // Spotlight fixture
+  drawRectAbs(spotCX - 4, spotTopY - 6, 8, 6, '#4a4058');
+  drawRectAbs(spotCX - 6, spotTopY, 12, 4, '#5a5068');
+  drawRectAbs(spotCX - 3, spotTopY + 4, 6, 3, C.lampGold);
+  ctx.fillStyle = 'rgba(255,240,200,0.3)';
+  ctx.fillRect(spotCX - 2, spotTopY + 7, 4, 2);
+
+  // Info card
+  ctx.font = '14px monospace';
+  const tw = ctx.measureText(art.title).width;
+  const cardW = Math.max(120, Math.round(tw) + 28);
+  const cardX = sx + frameW / 2 - cardW / 2;
+  const cardY = sy + frameH + 24;
+  drawRectAbs(cardX + 2, cardY + 2, cardW, 52, 'rgba(0,0,0,0.1)');
+  drawRectAbs(cardX, cardY, cardW, 52, '#faf6ee');
+  drawRectAbs(cardX, cardY, cardW, 2, C.frameGold);
+  ctx.fillStyle = '#3a2e20';
+  ctx.font = 'bold 13px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText(art.title, cardX + cardW / 2, cardY + 18);
+  ctx.fillStyle = '#8a7a60';
+  ctx.font = '11px monospace';
+  ctx.fillText(art.artist, cardX + cardW / 2, cardY + 33);
+  ctx.fillText(art.date, cardX + cardW / 2, cardY + 45);
+  ctx.textAlign = 'left';
+
+  // Rope barrier — positioned against the wall (row 12), NOT on the floor
+  const ropeY = (FLOOR_Y - 1) * TILE + 12; // just above floor on the wall
+  const poleL = frameX - 16;
+  const poleR = frameX + frameW + 16;
+
+  // Left pole
+  drawRect(poleL, ropeY - 24, 5, 32, '#6b5530');
+  drawRect(poleL + 1, ropeY - 24, 3, 32, C.ropePole);
+  drawRect(poleL + 1, ropeY - 24, 1, 32, C.frameLight);
+  drawRect(poleL - 1, ropeY - 28, 7, 5, C.frameGold);
+  drawRect(poleL, ropeY - 29, 5, 1, C.frameLight);
+  // Right pole
+  drawRect(poleR, ropeY - 24, 5, 32, '#6b5530');
+  drawRect(poleR + 1, ropeY - 24, 3, 32, C.ropePole);
+  drawRect(poleR + 1, ropeY - 24, 1, 32, C.frameLight);
+  drawRect(poleR - 1, ropeY - 28, 7, 5, C.frameGold);
+  drawRect(poleR, ropeY - 29, 5, 1, C.frameLight);
+
+  // Velvet rope
+  const ropeLx = poleL + 2 - cameraX;
+  const ropeRx = poleR + 2 - cameraX;
+  ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.moveTo(Math.round(ropeLx) + 2, ropeY - 16);
+  ctx.quadraticCurveTo((ropeLx + ropeRx) / 2, ropeY - 4, Math.round(ropeRx) + 2, ropeY - 16);
+  ctx.stroke();
+  ctx.strokeStyle = '#b8375a';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(Math.round(ropeLx) + 2, ropeY - 18);
+  ctx.quadraticCurveTo((ropeLx + ropeRx) / 2, ropeY - 6, Math.round(ropeRx) + 2, ropeY - 18);
+  ctx.stroke();
+  ctx.strokeStyle = '#d45a78';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(Math.round(ropeLx) + 2, ropeY - 19);
+  ctx.quadraticCurveTo((ropeLx + ropeRx) / 2, ropeY - 7, Math.round(ropeRx) + 2, ropeY - 19);
+  ctx.stroke();
+}
+
+// ============================================================
+// DECORATIONS (plants on wall side, benches on floor)
+// ============================================================
+function drawPlant(tx) {
+  const px = tx * TILE - cameraX;
+  // Plants sit against the wall, at the wall-floor boundary
+  const py = FLOOR_Y * TILE - 48;
+  if (px < -40 || px > canvas.width + 40) return;
+
+  // Ceramic pot
+  drawRectAbs(Math.round(px) - 2, py + 32, 24, 16, '#6a5040');
+  drawRectAbs(Math.round(px), py + 30, 20, 4, '#8a6a50');
+  drawRectAbs(Math.round(px) + 2, py + 28, 16, 3, '#9a7a60');
+  drawRectAbs(Math.round(px), py + 30, 20, 1, '#a88a68');
+  drawRectAbs(Math.round(px) + 3, py + 28, 14, 2, '#4a3a28');
+
+  // Leaves
+  const g1 = '#5a8a4a', g2 = '#4a7a3a', g3 = '#6a9a5a', g4 = '#3a6a2a';
+  drawRectAbs(Math.round(px) + 6, py + 12, 8, 16, g1);
+  drawRectAbs(Math.round(px) + 2, py + 8, 6, 14, g2);
+  drawRectAbs(Math.round(px) + 12, py + 6, 6, 16, g3);
+  drawRectAbs(Math.round(px) + 8, py + 2, 4, 10, g1);
+  drawRectAbs(Math.round(px), py + 14, 4, 8, g4);
+  drawRectAbs(Math.round(px) + 14, py + 10, 4, 8, g2);
+  drawRectAbs(Math.round(px) + 3, py + 9, 2, 2, g3);
+  drawRectAbs(Math.round(px) + 13, py + 7, 2, 2, '#7aaa6a');
+}
+
+function drawBench(tx) {
+  const px = tx * TILE - cameraX;
+  // Benches on the floor, row 15 area (well below the rope barrier)
+  const py = 15 * TILE;
+  if (px < -80 || px > canvas.width + 80) return;
+
+  const bw = 64, bh = 12;
+
+  // Metal legs
+  drawRectAbs(Math.round(px) + 4, py + bh, 3, 14, '#5a5a5a');
+  drawRectAbs(Math.round(px) + bw - 7, py + bh, 3, 14, '#5a5a5a');
+  drawRectAbs(Math.round(px) + 5, py + bh, 1, 14, '#7a7a7a');
+  drawRectAbs(Math.round(px) + bw - 6, py + bh, 1, 14, '#7a7a7a');
+  drawRectAbs(Math.round(px) + 2, py + bh + 12, 7, 2, '#4a4a4a');
+  drawRectAbs(Math.round(px) + bw - 9, py + bh + 12, 7, 2, '#4a4a4a');
+
+  // Seat
+  drawRectAbs(Math.round(px), py, bw, bh, '#3a3028');
+  drawRectAbs(Math.round(px) + 1, py + 1, bw - 2, bh - 2, '#5a4838');
+  drawRectAbs(Math.round(px) + 2, py + 1, bw - 4, 2, '#6a5848');
+  drawRectAbs(Math.round(px) + bw / 2 - 1, py + 1, 2, bh - 2, '#4a3828');
+}
+
+function drawDecorations() {
+  // Plants against the wall — positioned between artwork frames
+  // Each artwork has a wallX: 5, 14, 25, 36
+  // Plants go at: 2, 11, 22, 33, 44 (safely between frames)
+  drawPlant(2);
+  drawPlant(11);
+  drawPlant(22);
+  drawPlant(33);
+  drawPlant(44);
+
+  // Benches on the floor area, centered between artworks
+  // These are well below the rope barriers
+  drawBench(8);
+  drawBench(19);
+  drawBench(30);
+  drawBench(41);
+
+  // Welcome sign on wall
+  const signX = 1 * TILE - cameraX;
+  if (signX > -120 && signX < canvas.width + 120) {
+    drawRectAbs(Math.round(signX), 6 * TILE + 8, 88, 48, '#2a2235');
+    drawRectAbs(Math.round(signX) - 2, 6 * TILE + 6, 92, 2, C.frameGold);
+    drawRectAbs(Math.round(signX) - 2, 6 * TILE + 54, 92, 2, C.frameGold);
+    drawRectAbs(Math.round(signX) - 2, 6 * TILE + 6, 2, 50, C.frameGold);
+    drawRectAbs(Math.round(signX) + 88, 6 * TILE + 6, 2, 50, C.frameGold);
+    ctx.fillStyle = '#f5e6d0';
+    ctx.font = 'bold 13px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('ようこそ', Math.round(signX) + 44, 6 * TILE + 28);
+    ctx.font = '10px monospace';
+    ctx.fillStyle = '#c9a96e';
+    ctx.fillText('こなぬの美術館', Math.round(signX) + 44, 6 * TILE + 44);
+    ctx.textAlign = 'left';
+  }
+}
+
+// ============================================================
+// DRAW PLAYER (supports both characters!)
+// ============================================================
+function drawPlayer() {
+  const ch = characters[currentChar];
+  const px = Math.round(player.x - cameraX);
+  const py = Math.round(player.y);
+  const f = player.facing;
+  const S = 2;
+
+  const bw = 12*S, bh = 10*S;
+  const bx = px + 1*S;
+  const by = py + 8*S;
+
+  // Animation
+  player.walkTimer++;
+  if (Math.abs(player.vx) > 0.1 || Math.abs(player.vy) > 0.1) {
+    if (player.walkTimer % 8 === 0) player.walkFrame = (player.walkFrame + 1) % 4;
+  } else {
+    player.walkFrame = 0;
+  }
+  player.tailWag += 0.08;
+  player.blinkTimer++;
+  if (player.blinkTimer > 120) {
+    player.isBlinking = true;
+    if (player.blinkTimer > 126) { player.isBlinking = false; player.blinkTimer = 0; }
+  }
+
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.fillRect(px, py + player.h - S, player.w, 2*S);
+
+  // Tail
+  const tailX = f === 1 ? bx - 3*S : bx + bw + 1*S;
+  const tailWave = Math.sin(player.tailWag) * 2*S;
+  ctx.fillStyle = ch.body;
+  ctx.fillRect(tailX, by + 2*S + tailWave, 3*S, 2*S);
+  ctx.fillRect(tailX + (f === 1 ? -1*S : 1*S), by + tailWave, 2*S, 3*S);
+  ctx.fillStyle = ch.bodyDark;
+  ctx.fillRect(tailX, by + 3*S + tailWave, 3*S, 1*S);
+
+  // Star on tail tip (ほしねこ)
+  if (ch.hasStar) {
+    ctx.fillStyle = ch.starColor;
+    const starTX = tailX + (f === 1 ? -1*S : 1*S);
+    ctx.fillRect(starTX, by + tailWave - 1*S, 2*S, 2*S);
+    ctx.fillRect(starTX - 1*S, by + tailWave, 1*S, 1*S);
+    ctx.fillRect(starTX + 2*S, by + tailWave, 1*S, 1*S);
+  }
+
+  // Body
+  ctx.fillStyle = ch.body;
+  ctx.fillRect(bx, by, bw, bh);
+  ctx.fillStyle = ch.belly;
+  ctx.fillRect(bx + 3*S, by + 4*S, 6*S, bh - 4*S);
+
+  // Stripes (curry cat only)
+  if (ch.hasStripes) {
+    ctx.fillStyle = ch.bodyDark;
+    ctx.fillRect(bx + 2*S, by + 1*S, 2*S, 1*S);
+    ctx.fillRect(bx + 6*S, by + 1*S, 2*S, 1*S);
+    ctx.fillRect(bx + 8*S, by + 2*S, 2*S, 1*S);
+  }
+
+  // Legs
+  const legOff = [0, -1*S, 0, 1*S][player.walkFrame];
+  ctx.fillStyle = ch.body;
+  ctx.fillRect(bx + (f === 1 ? 8*S : 1*S), by + bh, 2*S, 3*S + legOff);
+  ctx.fillRect(bx + (f === 1 ? 10*S : 3*S), by + bh, 2*S, 3*S - legOff);
+  ctx.fillRect(bx + (f === 1 ? 1*S : 8*S), by + bh, 2*S, 3*S - legOff);
+  ctx.fillRect(bx + (f === 1 ? 3*S : 10*S), by + bh, 2*S, 3*S + legOff);
+  ctx.fillStyle = ch.belly;
+  ctx.fillRect(bx + (f === 1 ? 8*S : 1*S), by + bh + 2*S + legOff, 2*S, 1*S);
+  ctx.fillRect(bx + (f === 1 ? 1*S : 8*S), by + bh + 2*S - legOff, 2*S, 1*S);
+
+  // Head
+  const hx = bx + (f === 1 ? 2*S : 0);
+  const hy = by - 8*S;
+  const hw = 10*S, hh = 9*S;
+  ctx.fillStyle = ch.body;
+  ctx.fillRect(hx, hy, hw, hh);
+  ctx.fillStyle = ch.belly;
+  ctx.fillRect(hx + 2*S, hy + 4*S, 6*S, 4*S);
+
+  // Ears
+  ctx.fillStyle = ch.body;
+  ctx.fillRect(hx, hy - 3*S, 3*S, 3*S);
+  ctx.fillRect(hx + hw - 3*S, hy - 3*S, 3*S, 3*S);
+  ctx.fillStyle = ch.pink;
+  ctx.fillRect(hx + 1*S, hy - 2*S, 1*S, 2*S);
+  ctx.fillRect(hx + hw - 2*S, hy - 2*S, 1*S, 2*S);
+
+  // Star on forehead (ほしねこ)
+  if (ch.hasStar) {
+    ctx.fillStyle = ch.starColor;
+    const starX = hx + 4*S;
+    const starY = hy + 1*S;
+    ctx.fillRect(starX, starY, 2*S, 2*S);
+    ctx.fillRect(starX - 1*S, starY + 1*S, 1*S, 1*S);
+    ctx.fillRect(starX + 2*S, starY + 1*S, 1*S, 1*S);
+    ctx.fillRect(starX + 0*S, starY - 1*S, 1*S, 1*S);
+    ctx.fillRect(starX + 1*S, starY + 2*S, 1*S, 1*S);
+  }
+
+  // Eyes
+  if (!player.isBlinking) {
+    const eyeL = f === 1 ? hx + 2*S : hx + hw - 4*S;
+    const eyeR = f === 1 ? hx + 6*S : hx + hw - 8*S;
+    ctx.fillStyle = ch.eye;
+    ctx.fillRect(eyeL, hy + 3*S, 2*S, 2*S);
+    ctx.fillRect(eyeR, hy + 3*S, 2*S, 2*S);
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(eyeL + 1*S, hy + 3*S, 1*S, 1*S);
+    ctx.fillRect(eyeR + 1*S, hy + 3*S, 1*S, 1*S);
+  } else {
+    const eyeL = f === 1 ? hx + 2*S : hx + hw - 4*S;
+    const eyeR = f === 1 ? hx + 6*S : hx + hw - 8*S;
+    ctx.fillStyle = ch.eye;
+    ctx.fillRect(eyeL, hy + 4*S, 2*S, 1*S);
+    ctx.fillRect(eyeR, hy + 4*S, 2*S, 1*S);
+  }
+
+  // Nose
+  ctx.fillStyle = ch.pink;
+  const noseX = hx + (f === 1 ? 5*S : hw - 6*S);
+  ctx.fillRect(noseX, hy + 5*S, 1*S, 1*S);
+
+  // Cheeks
+  ctx.fillStyle = 'rgba(240,140,150,0.5)';
+  ctx.fillRect(hx + 1*S, hy + 5*S, 2*S, 1*S);
+  ctx.fillRect(hx + hw - 3*S, hy + 5*S, 2*S, 1*S);
+}
+
+// ============================================================
+// GAME LOGIC
+// ============================================================
+function update() {
+  const modalOpen = document.getElementById('modal-bg').style.display === 'flex';
+  if (modalOpen) return;
+
+  // 4-directional movement!
+  let moveX = 0, moveY = 0;
+  if (keys['ArrowLeft'] || keys['a'] || keys['A'] || mobileLeft) moveX -= 1;
+  if (keys['ArrowRight'] || keys['d'] || keys['D'] || mobileRight) moveX += 1;
+  if (keys['ArrowUp'] || keys['w'] || keys['W'] || mobileUp) moveY -= 1;
+  if (keys['ArrowDown'] || keys['s'] || keys['S'] || mobileDown) moveY += 1;
+
+  // Normalize diagonal speed
+  if (moveX !== 0 && moveY !== 0) {
+    moveX *= 0.707;
+    moveY *= 0.707;
+  }
+
+  player.vx = moveX * WALK_SPEED;
+  player.vy = moveY * WALK_SPEED;
+  if (moveX !== 0) player.facing = moveX > 0 ? 1 : -1;
+
+  player.x += player.vx;
+  player.y += player.vy;
+
+  // World X bounds
+  if (player.x < 0) player.x = 0;
+  if (player.x > GALLERY_W - player.w) player.x = GALLERY_W - player.w;
+
+  // Floor Y bounds (cat walks on floor area only)
+  const minY = FLOOR_Y * TILE;                    // top of floor
+  const maxY = (FLOOR_BOTTOM + 1) * TILE - player.h; // bottom of floor
+  if (player.y < minY) player.y = minY;
+  if (player.y > maxY) player.y = maxY;
+
+  // Camera follow (X only)
+  const targetCam = player.x - canvas.width / 2 + player.w / 2;
+  cameraX += (targetCam - cameraX) * 0.1;
+  if (cameraX < 0) cameraX = 0;
+  if (cameraX > GALLERY_W - canvas.width) cameraX = GALLERY_W - canvas.width;
+  if (GALLERY_W <= canvas.width) cameraX = 0;
+
+  // Check proximity to artworks (X distance only, since artworks are on wall)
+  nearArtwork = null;
+  const playerCenter = player.x + player.w / 2;
+  for (const art of artworks) {
+    const artAspect = (art.pw || 64) / (art.ph || 32);
+    const artFrameW = Math.round(80 * artAspect);
+    const artCenter = art.wallX * TILE + artFrameW / 2;
+    const dist = Math.abs(playerCenter - artCenter);
+    // Only if player is near the top of the floor (close to the wall)
+    if (dist < artFrameW / 2 + 40 && player.y < FLOOR_Y * TILE + 48) {
+      nearArtwork = art;
+      break;
+    }
+  }
+
+  // UI
+  const prompt = document.getElementById('interact-prompt');
+  const btnInteract = document.getElementById('btn-interact');
+  if (nearArtwork) {
+    prompt.textContent = '[E] かんしょう';
+    prompt.style.display = 'block';
+    if (btnInteract) btnInteract.style.display = 'flex';
+  } else {
+    prompt.style.display = 'none';
+    if (btnInteract) btnInteract.style.display = 'none';
+  }
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+function render() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.imageSmoothingEnabled = false;
+
+  drawGallery();
+
+  // Draw frames on wall
+  for (const art of artworks) {
+    drawFrame(art);
+  }
+
+  // Decorations (plants against wall, benches on floor)
+  drawDecorations();
+
+  // Player on top
+  drawPlayer();
+}
+
+// ============================================================
+// GAME LOOP
+// ============================================================
+function gameLoop() {
+  update();
+  render();
+  requestAnimationFrame(gameLoop);
+}
+</script>
+</body>
+</html>
