@@ -382,7 +382,7 @@ document.addEventListener('keydown', e => {
     if (isSitting && gameStarted) {
       // Stand up — push player below bench
       isSitting = false;
-      player.y = BENCH_Y + BENCH_H + 18 + 2;
+      player.y = BENCH_Y - 12; // foot=560
       sitBenchIdx = -1;
     } else if (nearArtwork && gameStarted) {
       showModal(nearArtwork);
@@ -420,7 +420,7 @@ setupMobileBtn('btn-down', () => mobileDown = true, () => mobileDown = false);
 
 document.getElementById('btn-interact')?.addEventListener('touchstart', (e) => {
   e.preventDefault();
-  if (isSitting) { isSitting = false; player.y = BENCH_Y + BENCH_H + 18 + 2; sitBenchIdx = -1; }
+  if (isSitting) { isSitting = false; player.y = BENCH_Y - 12; sitBenchIdx = -1; }
   else if (nearArtwork) showModal(nearArtwork);
   else if (nearBench !== null) {
     isSitting = true; sitBenchIdx = nearBench;
@@ -430,7 +430,7 @@ document.getElementById('btn-interact')?.addEventListener('touchstart', (e) => {
   }
 });
 document.getElementById('btn-interact')?.addEventListener('click', () => {
-  if (isSitting) { isSitting = false; player.y = BENCH_Y + BENCH_H + 18 + 2; sitBenchIdx = -1; }
+  if (isSitting) { isSitting = false; player.y = BENCH_Y - 12; sitBenchIdx = -1; }
   else if (nearArtwork) showModal(nearArtwork);
   else if (nearBench !== null) {
     isSitting = true; sitBenchIdx = nearBench;
@@ -1288,7 +1288,7 @@ function update() {
       isSitting = false;
       sitBenchIdx = -1;
       // Push player below bench legs so they're not stuck inside
-      player.y = BENCH_Y + BENCH_H + 18 + 2;
+      player.y = BENCH_Y - 12; // foot=560
     }
 
     // Camera still follows
@@ -1358,13 +1358,13 @@ function update() {
       const oldFoot = player.y + player.h;
       const newFoot = newY + player.h;
 
-      // Case 1: Was above bench, trying to move feet below bench top → block at bench top
-      if (oldFoot <= benchTop + 2 && newFoot > benchTop + 2) {
-        newY = benchTop + 2 - player.h;
+      // Case 1: Was above bench, trying to move feet below bench top → block (foot=520)
+      if (oldFoot <= benchTop + 8 && newFoot > benchTop + 8) {
+        newY = benchTop + 8 - player.h;
       }
-      // Case 2: Was below bench legs, trying to move feet above bench bottom → block at bench bottom
-      if (oldFoot >= benchBottom - 2 && newFoot < benchBottom - 2) {
-        newY = benchBottom - 2 - player.h;
+      // Case 2: Was below bench legs, trying to move feet above bench bottom → block (foot=550)
+      if (oldFoot >= benchBottom + 4 && newFoot < benchBottom + 4) {
+        newY = benchBottom + 4 - player.h;
       }
     }
   }
