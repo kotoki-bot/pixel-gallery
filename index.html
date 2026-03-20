@@ -380,8 +380,9 @@ document.addEventListener('keydown', e => {
   keys[e.key] = true;
   if (e.key === 'e' || e.key === 'E' || e.key === ' ' || e.key === 'Enter') {
     if (isSitting && gameStarted) {
-      // Stand up
+      // Stand up — push player below bench
       isSitting = false;
+      player.y = BENCH_Y + BENCH_H + 18 + 2;
       sitBenchIdx = -1;
     } else if (nearArtwork && gameStarted) {
       showModal(nearArtwork);
@@ -419,7 +420,7 @@ setupMobileBtn('btn-down', () => mobileDown = true, () => mobileDown = false);
 
 document.getElementById('btn-interact')?.addEventListener('touchstart', (e) => {
   e.preventDefault();
-  if (isSitting) { isSitting = false; sitBenchIdx = -1; }
+  if (isSitting) { isSitting = false; player.y = BENCH_Y + BENCH_H + 18 + 2; sitBenchIdx = -1; }
   else if (nearArtwork) showModal(nearArtwork);
   else if (nearBench !== null) {
     isSitting = true; sitBenchIdx = nearBench;
@@ -429,7 +430,7 @@ document.getElementById('btn-interact')?.addEventListener('touchstart', (e) => {
   }
 });
 document.getElementById('btn-interact')?.addEventListener('click', () => {
-  if (isSitting) { isSitting = false; sitBenchIdx = -1; }
+  if (isSitting) { isSitting = false; player.y = BENCH_Y + BENCH_H + 18 + 2; sitBenchIdx = -1; }
   else if (nearArtwork) showModal(nearArtwork);
   else if (nearBench !== null) {
     isSitting = true; sitBenchIdx = nearBench;
@@ -1286,8 +1287,8 @@ function update() {
     if (moveX !== 0 || moveY !== 0) {
       isSitting = false;
       sitBenchIdx = -1;
-      // Push player below bench so they're not stuck inside
-      player.y = BENCH_Y + BENCH_H + 2;
+      // Push player below bench legs so they're not stuck inside
+      player.y = BENCH_Y + BENCH_H + 18 + 2;
     }
 
     // Camera still follows
@@ -1338,33 +1339,32 @@ function update() {
   const maxY = (FLOOR_BOTTOM + 1) * TILE - player.h; // bottom of floor
   if (newY > maxY) newY = maxY;
 
-  // ── Rope line collision ──
-  // Rope poles sit at (FLOOR_Y-1)*TILE + 12, poles extend from ropeY-28 to ropeY+8
-  // The collision line = bottom of rope poles = the line cat feet can't go above
-  const ropeLineY = (FLOOR_Y - 1) * TILE + 16; // bottom of rope/pole zone
-  // Cat's feet (bottom of sprite) cannot go above this line
-  if (newY + player.h < ropeLineY) {
-    newY = ropeLineY - player.h;
+  // ── Floor top boundary ──
+  // Cat's feet cannot go above the floor edge
+  const floorTopY = FLOOR_Y * TILE;
+  if (newY + player.h < floorTopY) {
+    newY = floorTopY - player.h;
   }
 
-  // ── Bench seat collision ──
-  // Cat can walk in the bench leg zone (below seat) but can't pass through the seat line
+  // ── Bench collision — cat can't walk through bench at all ──
+  // Collision line = bottom of bench legs (full bench height)
   for (let i = 0; i < benchPositions.length; i++) {
     const bx = benchPositions[i] * TILE;
-    const seatY = BENCH_Y; // top of bench seat = collision line
+    const benchTop = BENCH_Y;                    // top of bench seat
+    const benchBottom = BENCH_Y + BENCH_H + 18;  // bottom of bench legs
 
     // Check horizontal overlap with bench
     if (newX + player.w > bx - 4 && newX < bx + BENCH_W + 4) {
       const oldFoot = player.y + player.h;
       const newFoot = newY + player.h;
 
-      // Case 1: Was above (or at) bench seat, trying to move feet below seat → block
-      if (oldFoot <= seatY + 2 && newFoot > seatY + 2) {
-        newY = seatY + 2 - player.h;
+      // Case 1: Was above bench, trying to move feet below bench top → block at bench top
+      if (oldFoot <= benchTop + 2 && newFoot > benchTop + 2) {
+        newY = benchTop + 2 - player.h;
       }
-      // Case 2: Was below bench seat, trying to move feet above seat → block
-      if (oldFoot >= seatY + BENCH_H - 2 && newFoot < seatY + BENCH_H - 2) {
-        newY = seatY + BENCH_H - 2 - player.h;
+      // Case 2: Was below bench legs, trying to move feet above bench bottom → block at bench bottom
+      if (oldFoot >= benchBottom - 2 && newFoot < benchBottom - 2) {
+        newY = benchBottom - 2 - player.h;
       }
     }
   }
