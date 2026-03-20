@@ -309,9 +309,9 @@ const C = {
 // ============================================================
 const player = {
   x: 64,
-  y: FLOOR_Y * TILE + 32,  // start on the floor area
-  w: 28,
-  h: 40,
+  y: FLOOR_Y * TILE + 16,  // start on the floor area
+  w: 42,
+  h: 60,
   vx: 0,
   vy: 0,
   facing: 1,
@@ -344,6 +344,18 @@ artworks.forEach(art => {
 let gameStarted = false;
 let cameraX = 0;
 let nearArtwork = null;
+let nearBench = null;
+let isSitting = false;
+let sitBenchIdx = -1;
+
+// Bench world positions (tile X) and collision boxes
+const benchPositions = [8, 19, 30, 41];
+const BENCH_W = 96, BENCH_H = 16;
+const BENCH_Y = 16 * TILE; // center of the floor walking area
+
+function getBenchRect(tx) {
+  return { x: tx * TILE, y: BENCH_Y, w: BENCH_W, h: BENCH_H + 18 }; // include legs
+}
 
 // ============================================================
 // TITLE SCREEN
@@ -367,7 +379,20 @@ document.addEventListener('keydown', (e) => {
 document.addEventListener('keydown', e => {
   keys[e.key] = true;
   if (e.key === 'e' || e.key === 'E' || e.key === ' ' || e.key === 'Enter') {
-    if (nearArtwork && gameStarted) showModal(nearArtwork);
+    if (isSitting && gameStarted) {
+      // Stand up
+      isSitting = false;
+      sitBenchIdx = -1;
+    } else if (nearArtwork && gameStarted) {
+      showModal(nearArtwork);
+    } else if (nearBench !== null && gameStarted) {
+      // Sit on bench
+      isSitting = true;
+      sitBenchIdx = nearBench;
+      const btx = benchPositions[nearBench];
+      player.x = btx * TILE + BENCH_W / 2 - player.w / 2;
+      player.y = BENCH_Y - player.h + 12; // sit on top of bench
+    }
   }
   // Q to switch character
   if ((e.key === 'q' || e.key === 'Q') && gameStarted) switchCharacter();
@@ -394,10 +419,24 @@ setupMobileBtn('btn-down', () => mobileDown = true, () => mobileDown = false);
 
 document.getElementById('btn-interact')?.addEventListener('touchstart', (e) => {
   e.preventDefault();
-  if (nearArtwork) showModal(nearArtwork);
+  if (isSitting) { isSitting = false; sitBenchIdx = -1; }
+  else if (nearArtwork) showModal(nearArtwork);
+  else if (nearBench !== null) {
+    isSitting = true; sitBenchIdx = nearBench;
+    const btx = benchPositions[nearBench];
+    player.x = btx * TILE + BENCH_W / 2 - player.w / 2;
+    player.y = BENCH_Y - player.h + 12;
+  }
 });
 document.getElementById('btn-interact')?.addEventListener('click', () => {
-  if (nearArtwork) showModal(nearArtwork);
+  if (isSitting) { isSitting = false; sitBenchIdx = -1; }
+  else if (nearArtwork) showModal(nearArtwork);
+  else if (nearBench !== null) {
+    isSitting = true; sitBenchIdx = nearBench;
+    const btx = benchPositions[nearBench];
+    player.x = btx * TILE + BENCH_W / 2 - player.w / 2;
+    player.y = BENCH_Y - player.h + 12;
+  }
 });
 document.getElementById('btn-switch')?.addEventListener('touchstart', (e) => {
   e.preventDefault();
@@ -613,6 +652,67 @@ function drawCharIcon() {
 
 window.addEventListener('DOMContentLoaded', drawPixelIcons);
 
+// Track which icon is currently shown on the interact button
+let currentInteractIcon = 'eye'; // 'eye' | 'sit' | 'stand'
+
+function updateInteractIcon(mode) {
+  if (mode === currentInteractIcon) return;
+  currentInteractIcon = mode;
+  const c = document.getElementById('px-eye');
+  if (!c) return;
+  const x = c.getContext('2d');
+  x.imageSmoothingEnabled = false;
+  x.clearRect(0, 0, 16, 16);
+  const gold = '#f5e6d0';
+
+  if (mode === 'eye') {
+    // Magnifying glass
+    x.fillStyle = gold;
+    [[5,2],[6,2],[7,2],[8,2],[4,3],[9,3],[3,4],[10,4],[3,5],[10,5],[3,6],[10,6],[3,7],[10,7],[4,8],[9,8],[5,9],[6,9],[7,9],[8,9]].forEach(([px,py]) => x.fillRect(px, py, 1, 1));
+    x.fillStyle = 'rgba(245,230,208,0.3)';
+    x.fillRect(5, 4, 1, 1); x.fillRect(5, 5, 1, 1); x.fillRect(6, 4, 1, 1);
+    x.fillStyle = gold;
+    [[10,9],[11,10],[12,11],[13,12],[11,9],[12,10],[13,11]].forEach(([px,py]) => x.fillRect(px, py, 1, 1));
+  } else if (mode === 'sit') {
+    // Sitting cat silhouette
+    const col = currentChar === 'curry' ? '#eaa74b' : '#829aaf';
+    x.fillStyle = col;
+    // Ears
+    x.fillRect(4, 1, 2, 2); x.fillRect(10, 1, 2, 2);
+    // Head
+    for (let py = 3; py <= 6; py++) for (let px = 4; px <= 11; px++) x.fillRect(px, py, 1, 1);
+    // Eyes closed (−‿−)
+    x.fillStyle = '#222';
+    x.fillRect(5, 4, 2, 1); x.fillRect(9, 4, 2, 1);
+    // Body (sitting blob)
+    x.fillStyle = col;
+    for (let py = 7; py <= 11; py++) for (let px = 3; px <= 12; px++) x.fillRect(px, py, 1, 1);
+    // Paws
+    x.fillRect(4, 12, 2, 1); x.fillRect(10, 12, 2, 1);
+    // Bench underneath
+    x.fillStyle = '#5a4838';
+    x.fillRect(2, 13, 12, 2);
+    x.fillStyle = '#6a5848';
+    x.fillRect(2, 13, 12, 1);
+  } else if (mode === 'stand') {
+    // Standing up arrow + cat
+    const col = currentChar === 'curry' ? '#eaa74b' : '#829aaf';
+    // Up arrow
+    x.fillStyle = gold;
+    x.fillRect(7, 1, 2, 1);
+    x.fillRect(6, 2, 4, 1);
+    x.fillRect(5, 3, 6, 1);
+    // Cat body standing
+    x.fillStyle = col;
+    for (let py = 5; py <= 9; py++) for (let px = 5; px <= 10; px++) x.fillRect(px, py, 1, 1);
+    // Legs
+    x.fillRect(5, 10, 2, 3); x.fillRect(9, 10, 2, 3);
+    // Eyes
+    x.fillStyle = '#222';
+    x.fillRect(6, 6, 1, 1); x.fillRect(9, 6, 1, 1);
+  }
+}
+
 // ============================================================
 // DRAWING HELPERS
 // ============================================================
@@ -801,23 +901,24 @@ function drawFrame(art) {
   ctx.fillStyle = 'rgba(255,240,200,0.3)';
   ctx.fillRect(spotCX - 2, spotTopY + 7, 4, 2);
 
-  // Info card
-  ctx.font = '14px monospace';
+  // Info plate — small, just the title (like a museum nameplate)
+  ctx.font = '10px monospace';
   const tw = ctx.measureText(art.title).width;
-  const cardW = Math.max(120, Math.round(tw) + 28);
-  const cardX = sx + frameW / 2 - cardW / 2;
-  const cardY = sy + frameH + 24;
-  drawRectAbs(cardX + 2, cardY + 2, cardW, 52, 'rgba(0,0,0,0.1)');
-  drawRectAbs(cardX, cardY, cardW, 52, '#faf6ee');
-  drawRectAbs(cardX, cardY, cardW, 2, C.frameGold);
+  const plateW = Math.max(60, Math.round(tw) + 16);
+  const plateH = 18;
+  const plateX = sx + frameW / 2 - plateW / 2;
+  const plateY = sy + frameH + 20;
+  // Shadow
+  drawRectAbs(plateX + 1, plateY + 1, plateW, plateH, 'rgba(0,0,0,0.08)');
+  // Plate body
+  drawRectAbs(plateX, plateY, plateW, plateH, '#f0ece4');
+  // Gold top edge
+  drawRectAbs(plateX, plateY, plateW, 2, C.frameGold);
+  // Title text
   ctx.fillStyle = '#3a2e20';
-  ctx.font = 'bold 13px monospace';
+  ctx.font = '10px monospace';
   ctx.textAlign = 'center';
-  ctx.fillText(art.title, cardX + cardW / 2, cardY + 18);
-  ctx.fillStyle = '#8a7a60';
-  ctx.font = '11px monospace';
-  ctx.fillText(art.artist, cardX + cardW / 2, cardY + 33);
-  ctx.fillText(art.date, cardX + cardW / 2, cardY + 45);
+  ctx.fillText(art.title, plateX + plateW / 2, plateY + 13);
   ctx.textAlign = 'left';
 
   // Rope barrier — positioned against the wall (row 12), NOT on the floor
@@ -891,45 +992,31 @@ function drawPlant(tx) {
 
 function drawBench(tx) {
   const px = tx * TILE - cameraX;
-  // Benches on the floor, row 15 area (well below the rope barrier)
-  const py = 15 * TILE;
-  if (px < -80 || px > canvas.width + 80) return;
+  const py = BENCH_Y; // use the shared constant
+  if (px < -120 || px > canvas.width + 120) return;
 
-  const bw = 64, bh = 12;
+  const bw = 96, bh = 16;
 
   // Metal legs
-  drawRectAbs(Math.round(px) + 4, py + bh, 3, 14, '#5a5a5a');
-  drawRectAbs(Math.round(px) + bw - 7, py + bh, 3, 14, '#5a5a5a');
-  drawRectAbs(Math.round(px) + 5, py + bh, 1, 14, '#7a7a7a');
-  drawRectAbs(Math.round(px) + bw - 6, py + bh, 1, 14, '#7a7a7a');
-  drawRectAbs(Math.round(px) + 2, py + bh + 12, 7, 2, '#4a4a4a');
-  drawRectAbs(Math.round(px) + bw - 9, py + bh + 12, 7, 2, '#4a4a4a');
+  drawRectAbs(Math.round(px) + 6, py + bh, 4, 18, '#5a5a5a');
+  drawRectAbs(Math.round(px) + bw - 10, py + bh, 4, 18, '#5a5a5a');
+  drawRectAbs(Math.round(px) + 7, py + bh, 2, 18, '#7a7a7a');
+  drawRectAbs(Math.round(px) + bw - 9, py + bh, 2, 18, '#7a7a7a');
+  // Feet
+  drawRectAbs(Math.round(px) + 3, py + bh + 16, 10, 3, '#4a4a4a');
+  drawRectAbs(Math.round(px) + bw - 13, py + bh + 16, 10, 3, '#4a4a4a');
 
   // Seat
   drawRectAbs(Math.round(px), py, bw, bh, '#3a3028');
   drawRectAbs(Math.round(px) + 1, py + 1, bw - 2, bh - 2, '#5a4838');
-  drawRectAbs(Math.round(px) + 2, py + 1, bw - 4, 2, '#6a5848');
+  drawRectAbs(Math.round(px) + 2, py + 1, bw - 4, 3, '#6a5848');
+  // Center divide
   drawRectAbs(Math.round(px) + bw / 2 - 1, py + 1, 2, bh - 2, '#4a3828');
+  // Highlight
+  drawRectAbs(Math.round(px) + 2, py + 1, bw - 4, 1, '#7a6858');
 }
 
-function drawDecorations() {
-  // Plants against the wall — positioned between artwork frames
-  // Each artwork has a wallX: 5, 14, 25, 36
-  // Plants go at: 2, 11, 22, 33, 44 (safely between frames)
-  drawPlant(2);
-  drawPlant(11);
-  drawPlant(22);
-  drawPlant(33);
-  drawPlant(44);
-
-  // Benches on the floor area, centered between artworks
-  // These are well below the rope barriers
-  drawBench(8);
-  drawBench(19);
-  drawBench(30);
-  drawBench(41);
-
-  // Welcome sign on wall
+function drawWelcomeSign() {
   const signX = 1 * TILE - cameraX;
   if (signX > -120 && signX < canvas.width + 120) {
     drawRectAbs(Math.round(signX), 6 * TILE + 8, 88, 48, '#2a2235');
@@ -956,7 +1043,99 @@ function drawPlayer() {
   const px = Math.round(player.x - cameraX);
   const py = Math.round(player.y);
   const f = player.facing;
-  const S = 2;
+  const S = 3;
+
+  // === SITTING POSE ===
+  if (isSitting) {
+    // Compact sitting cat — body is a rounded blob, legs hidden, tail to side
+    const bw = 12*S, bh = 6*S;
+    const bx = px + 1*S;
+    const by = py + 10*S;
+
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.15)';
+    ctx.fillRect(bx - 1*S, by + bh, bw + 2*S, 2*S);
+
+    // Tail (curled to the side)
+    ctx.fillStyle = ch.body;
+    ctx.fillRect(bx + bw, by + 2*S, 4*S, 2*S);
+    ctx.fillRect(bx + bw + 3*S, by + 1*S, 2*S, 2*S);
+    if (ch.hasStar) {
+      ctx.fillStyle = ch.starColor;
+      ctx.fillRect(bx + bw + 4*S, by, 2*S, 2*S);
+    }
+
+    // Body (round sitting blob)
+    ctx.fillStyle = ch.body;
+    ctx.fillRect(bx, by, bw, bh);
+    ctx.fillRect(bx - 1*S, by + 1*S, bw + 2*S, bh - 2*S);
+    ctx.fillStyle = ch.belly;
+    ctx.fillRect(bx + 3*S, by + 2*S, 6*S, bh - 2*S);
+
+    // Front paws (visible, resting)
+    ctx.fillStyle = ch.body;
+    ctx.fillRect(bx + 1*S, by + bh, 3*S, 2*S);
+    ctx.fillRect(bx + bw - 4*S, by + bh, 3*S, 2*S);
+    ctx.fillStyle = ch.belly;
+    ctx.fillRect(bx + 1*S, by + bh + 1*S, 3*S, 1*S);
+    ctx.fillRect(bx + bw - 4*S, by + bh + 1*S, 3*S, 1*S);
+
+    // Head (facing forward)
+    const hx = bx + 1*S;
+    const hy = by - 8*S;
+    const hw = 10*S, hh = 9*S;
+    ctx.fillStyle = ch.body;
+    ctx.fillRect(hx, hy, hw, hh);
+    ctx.fillStyle = ch.belly;
+    ctx.fillRect(hx + 2*S, hy + 4*S, 6*S, 4*S);
+
+    // Ears
+    ctx.fillStyle = ch.body;
+    ctx.fillRect(hx, hy - 3*S, 3*S, 3*S);
+    ctx.fillRect(hx + hw - 3*S, hy - 3*S, 3*S, 3*S);
+    ctx.fillStyle = ch.pink;
+    ctx.fillRect(hx + 1*S, hy - 2*S, 1*S, 2*S);
+    ctx.fillRect(hx + hw - 2*S, hy - 2*S, 1*S, 2*S);
+
+    // Star (ほしねこ)
+    if (ch.hasStar) {
+      ctx.fillStyle = ch.starColor;
+      const starX = hx + 4*S;
+      const starY = hy + 1*S;
+      ctx.fillRect(starX, starY, 2*S, 2*S);
+      ctx.fillRect(starX - 1*S, starY + 1*S, 1*S, 1*S);
+      ctx.fillRect(starX + 2*S, starY + 1*S, 1*S, 1*S);
+      ctx.fillRect(starX, starY - 1*S, 1*S, 1*S);
+      ctx.fillRect(starX + 1*S, starY + 2*S, 1*S, 1*S);
+    }
+
+    // Stripes (curry cat)
+    if (ch.hasStripes) {
+      ctx.fillStyle = ch.bodyDark;
+      ctx.fillRect(hx + 2*S, hy + 1*S, 2*S, 1*S);
+      ctx.fillRect(hx + hw - 4*S, hy + 1*S, 2*S, 1*S);
+    }
+
+    // Eyes (closed, relaxed — ˘‿˘ style)
+    ctx.fillStyle = ch.eye;
+    const eyeL = hx + 2*S, eyeR = hx + hw - 4*S;
+    // Closed eye lines — gentle curves
+    ctx.fillRect(eyeL, hy + 4*S, 2*S, 1*S);
+    ctx.fillRect(eyeR, hy + 4*S, 2*S, 1*S);
+
+    // Nose
+    ctx.fillStyle = ch.pink;
+    ctx.fillRect(hx + 4*S, hy + 5*S, 2*S, 1*S);
+
+    // Cheeks
+    ctx.fillStyle = 'rgba(240,140,150,0.5)';
+    ctx.fillRect(hx + 1*S, hy + 5*S, 2*S, 1*S);
+    ctx.fillRect(hx + hw - 3*S, hy + 5*S, 2*S, 1*S);
+
+    return; // skip normal drawing
+  }
+
+  // === NORMAL WALKING POSE ===
 
   const bw = 12*S, bh = 10*S;
   const bx = px + 1*S;
@@ -1088,6 +1267,48 @@ function update() {
   const modalOpen = document.getElementById('modal-bg').style.display === 'flex';
   if (modalOpen) return;
 
+  // If sitting, freeze player movement — only allow standing up
+  if (isSitting) {
+    player.vx = 0;
+    player.vy = 0;
+    // Keep sitting position
+    if (sitBenchIdx >= 0) {
+      const btx = benchPositions[sitBenchIdx];
+      player.x = btx * TILE + BENCH_W / 2 - player.w / 2;
+      player.y = BENCH_Y - player.h + 12;
+    }
+    // Any directional input = stand up
+    let moveX = 0, moveY = 0;
+    if (keys['ArrowLeft'] || keys['a'] || keys['A'] || mobileLeft) moveX -= 1;
+    if (keys['ArrowRight'] || keys['d'] || keys['D'] || mobileRight) moveX += 1;
+    if (keys['ArrowUp'] || keys['w'] || keys['W'] || mobileUp) moveY -= 1;
+    if (keys['ArrowDown'] || keys['s'] || keys['S'] || mobileDown) moveY += 1;
+    if (moveX !== 0 || moveY !== 0) {
+      isSitting = false;
+      sitBenchIdx = -1;
+      // Push player below bench so they're not stuck inside
+      player.y = BENCH_Y + BENCH_H + 2;
+    }
+
+    // Camera still follows
+    const targetCam = player.x - canvas.width / 2 + player.w / 2;
+    cameraX += (targetCam - cameraX) * 0.1;
+    if (cameraX < 0) cameraX = 0;
+    if (cameraX > GALLERY_W - canvas.width) cameraX = GALLERY_W - canvas.width;
+    if (GALLERY_W <= canvas.width) cameraX = 0;
+
+    // Show "stand up" prompt
+    nearArtwork = null;
+    nearBench = null;
+    const prompt = document.getElementById('interact-prompt');
+    const btnInteract = document.getElementById('btn-interact');
+    prompt.textContent = '[E] たつ';
+    prompt.style.display = 'block';
+    if (btnInteract) btnInteract.style.display = 'flex';
+    updateInteractIcon('stand');
+    return;
+  }
+
   // 4-directional movement!
   let moveX = 0, moveY = 0;
   if (keys['ArrowLeft'] || keys['a'] || keys['A'] || mobileLeft) moveX -= 1;
@@ -1105,18 +1326,22 @@ function update() {
   player.vy = moveY * WALK_SPEED;
   if (moveX !== 0) player.facing = moveX > 0 ? 1 : -1;
 
-  player.x += player.vx;
-  player.y += player.vy;
+  // Tentative new position
+  let newX = player.x + player.vx;
+  let newY = player.y + player.vy;
 
   // World X bounds
-  if (player.x < 0) player.x = 0;
-  if (player.x > GALLERY_W - player.w) player.x = GALLERY_W - player.w;
+  if (newX < 0) newX = 0;
+  if (newX > GALLERY_W - player.w) newX = GALLERY_W - player.w;
 
   // Floor Y bounds (cat walks on floor area only)
   const minY = FLOOR_Y * TILE;                    // top of floor
   const maxY = (FLOOR_BOTTOM + 1) * TILE - player.h; // bottom of floor
-  if (player.y < minY) player.y = minY;
-  if (player.y > maxY) player.y = maxY;
+  if (newY < minY) newY = minY;
+  if (newY > maxY) newY = maxY;
+
+  player.x = newX;
+  player.y = newY;
 
   // Camera follow (X only)
   const targetCam = player.x - canvas.width / 2 + player.w / 2;
@@ -1140,6 +1365,22 @@ function update() {
     }
   }
 
+  // Check proximity to benches (from above or below)
+  nearBench = null;
+  for (let i = 0; i < benchPositions.length; i++) {
+    const br = getBenchRect(benchPositions[i]);
+    const benchCenter = br.x + BENCH_W / 2;
+    const distX = Math.abs(playerCenter - benchCenter);
+    // Use player center Y for proximity
+    const playerCenterY = player.y + player.h / 2;
+    const benchCenterY = br.y + br.h / 2;
+    const distY = Math.abs(playerCenterY - benchCenterY);
+    if (distX < BENCH_W / 2 + 30 && distY < player.h + 20) {
+      nearBench = i;
+      break;
+    }
+  }
+
   // UI
   const prompt = document.getElementById('interact-prompt');
   const btnInteract = document.getElementById('btn-interact');
@@ -1147,6 +1388,12 @@ function update() {
     prompt.textContent = '[E] かんしょう';
     prompt.style.display = 'block';
     if (btnInteract) btnInteract.style.display = 'flex';
+    updateInteractIcon('eye');
+  } else if (nearBench !== null) {
+    prompt.textContent = '[E] すわる';
+    prompt.style.display = 'block';
+    if (btnInteract) btnInteract.style.display = 'flex';
+    updateInteractIcon('sit');
   } else {
     prompt.style.display = 'none';
     if (btnInteract) btnInteract.style.display = 'none';
@@ -1162,16 +1409,50 @@ function render() {
 
   drawGallery();
 
-  // Draw frames on wall
+  // Draw frames on wall (always behind everything on the floor)
   for (const art of artworks) {
     drawFrame(art);
   }
 
-  // Decorations (plants against wall, benches on floor)
-  drawDecorations();
+  // Y-sorted rendering: player, benches, and plants are sorted by their "foot" Y position
+  // Objects with lower Y (higher on screen) are drawn first (behind)
+  const playerFootY = player.y + player.h;
 
-  // Player on top
-  drawPlayer();
+  // Draw plants against wall (they're at FLOOR_Y boundary, always behind floor objects)
+  drawPlant(2);
+  drawPlant(11);
+  drawPlant(22);
+  drawPlant(33);
+  drawPlant(44);
+
+  // Welcome sign (on wall, always behind)
+  drawWelcomeSign();
+
+  // Collect floor objects for Y-sort: benches + player
+  const floorObjects = [];
+  // Add benches
+  for (let i = 0; i < benchPositions.length; i++) {
+    const btx = benchPositions[i];
+    floorObjects.push({
+      type: 'bench',
+      tx: btx,
+      sortY: BENCH_Y + BENCH_H + 18 // foot of bench (bottom of legs)
+    });
+  }
+  // Add player
+  floorObjects.push({
+    type: 'player',
+    sortY: playerFootY
+  });
+
+  // Sort by Y (lower Y = drawn first = behind)
+  floorObjects.sort((a, b) => a.sortY - b.sortY);
+
+  // Draw in order
+  for (const obj of floorObjects) {
+    if (obj.type === 'bench') drawBench(obj.tx);
+    else if (obj.type === 'player') drawPlayer();
+  }
 }
 
 // ============================================================
