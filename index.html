@@ -1334,11 +1334,40 @@ function update() {
   if (newX < 0) newX = 0;
   if (newX > GALLERY_W - player.w) newX = GALLERY_W - player.w;
 
-  // Floor Y bounds (cat walks on floor area only)
-  const minY = FLOOR_Y * TILE;                    // top of floor
+  // Floor Y bounds — extended up to allow walking near rope/bench area
   const maxY = (FLOOR_BOTTOM + 1) * TILE - player.h; // bottom of floor
-  if (newY < minY) newY = minY;
   if (newY > maxY) newY = maxY;
+
+  // ── Rope line collision ──
+  // Rope poles sit at (FLOOR_Y-1)*TILE + 12, poles extend from ropeY-28 to ropeY+8
+  // The collision line = bottom of rope poles = the line cat feet can't go above
+  const ropeLineY = (FLOOR_Y - 1) * TILE + 16; // bottom of rope/pole zone
+  // Cat's feet (bottom of sprite) cannot go above this line
+  if (newY + player.h < ropeLineY) {
+    newY = ropeLineY - player.h;
+  }
+
+  // ── Bench seat collision ──
+  // Cat can walk in the bench leg zone (below seat) but can't pass through the seat line
+  for (let i = 0; i < benchPositions.length; i++) {
+    const bx = benchPositions[i] * TILE;
+    const seatY = BENCH_Y; // top of bench seat = collision line
+
+    // Check horizontal overlap with bench
+    if (newX + player.w > bx - 4 && newX < bx + BENCH_W + 4) {
+      const oldFoot = player.y + player.h;
+      const newFoot = newY + player.h;
+
+      // Case 1: Was above (or at) bench seat, trying to move feet below seat → block
+      if (oldFoot <= seatY + 2 && newFoot > seatY + 2) {
+        newY = seatY + 2 - player.h;
+      }
+      // Case 2: Was below bench seat, trying to move feet above seat → block
+      if (oldFoot >= seatY + BENCH_H - 2 && newFoot < seatY + BENCH_H - 2) {
+        newY = seatY + BENCH_H - 2 - player.h;
+      }
+    }
+  }
 
   player.x = newX;
   player.y = newY;
