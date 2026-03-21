@@ -176,7 +176,7 @@ canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edge
 // ============================================================
 
 const TILE = 32;
-const GALLERY_W = 1536;   // 48 tiles wide
+const GALLERY_W = 1920;   // 60 tiles wide (auto-expanded for 5 artworks)
 const GALLERY_H = 640;    // 20 tiles tall (taller canvas = more wall + floor)
 const FLOOR_Y = 13;       // floor starts at row 13 (tall wall for frames + cards)
 const FLOOR_BOTTOM = 19;  // floor ends at row 19
@@ -245,7 +245,7 @@ const artworks = [
     artist: 'こなぬ',
     date: '2026-03-18',
     desc: '夜空の星を見ながら、おふとんでぬくぬく。\nみかんもあるよ。おやすみなさい。',
-    wallX: 14,
+    wallX: 17,
     pw: 64, ph: 32
   },
   {
@@ -255,7 +255,7 @@ const artworks = [
     artist: 'こなぬ',
     date: '2026-03-19',
     desc: 'ランプのあかり、あまいおかし、きらきら。\nすきなものに囲まれたら、それだけでいい。',
-    wallX: 25,
+    wallX: 29,
     pw: 64, ph: 32
   },
   {
@@ -265,7 +265,7 @@ const artworks = [
     artist: 'こなぬ',
     date: '2026-03-20',
     desc: 'あめでも、ふたりなら へっちゃら。\n赤いかさの下、カレーねことほしねこのピクニック。',
-    wallX: 36,
+    wallX: 41,
     pw: 64, ph: 32
   },
   {
@@ -275,7 +275,7 @@ const artworks = [
     artist: 'こなぬ',
     date: '2026-03-21',
     desc: '春分の日。昼と夜がおなじ長さ。\n桜の木の下で、カレーねことほしねこ、おだんごとお茶。\nふたりでおはなみ。🌸🍡\n（小哄ちゃんのお気に入り：v2）',
-    wallX: 45,
+    wallX: 53,
     pw: 64, ph: 32
   }
 ];
@@ -359,7 +359,7 @@ let isSitting = false;
 let sitBenchIdx = -1;
 
 // Bench world positions (tile X) and collision boxes
-const benchPositions = [8, 19, 30, 41];
+const benchPositions = [11, 23, 35, 47];
 const BENCH_W = 96, BENCH_H = 16;
 const BENCH_Y = 16 * TILE; // center of the floor walking area
 
@@ -1449,10 +1449,11 @@ function render() {
 
   // Draw plants against wall (they're at FLOOR_Y boundary, always behind floor objects)
   drawPlant(2);
-  drawPlant(11);
-  drawPlant(22);
-  drawPlant(33);
-  drawPlant(44);
+  drawPlant(14);
+  drawPlant(26);
+  drawPlant(38);
+  drawPlant(50);
+  drawPlant(57);
 
   // Welcome sign (on wall, always behind)
   drawWelcomeSign();
