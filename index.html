@@ -245,7 +245,7 @@ const artworks = [
     artist: 'こなぬ',
     date: '2026-03-18',
     desc: '夜空の星を見ながら、おふとんでぬくぬく。\nみかんもあるよ。おやすみなさい。',
-    wallX: 15,
+    wallX: 13,
     pw: 64, ph: 32
   },
   {
@@ -359,7 +359,7 @@ let isSitting = false;
 let sitBenchIdx = -1;
 
 // Bench world positions (tile X) and collision boxes
-const benchPositions = [10, 20, 30, 40];
+const benchPositions = [9, 19, 30, 40];
 const BENCH_W = 96, BENCH_H = 16;
 const BENCH_Y = 16 * TILE; // center of the floor walking area
 
@@ -1449,10 +1449,10 @@ function render() {
 
   // Draw plants against wall (they're at FLOOR_Y boundary, always behind floor objects)
   drawPlant(2);
-  drawPlant(11);
+  drawPlant(10);
   drawPlant(21);
-  drawPlant(31);
-  drawPlant(41);
+  drawPlant(32);
+  drawPlant(42);
   drawPlant(52);
 
   // Welcome sign (on wall, always behind)
