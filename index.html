@@ -267,6 +267,16 @@ const artworks = [
     desc: 'あめでも、ふたりなら へっちゃら。\n赤いかさの下、カレーねことほしねこのピクニック。',
     wallX: 36,
     pw: 64, ph: 32
+  },
+  {
+    id: 'shunbun_hanami',
+    src: '/artworks/shunbun_hanami.png',
+    title: '春分のはなみ',
+    artist: 'こなぬ',
+    date: '2026-03-21',
+    desc: '春分の日。昼と夜がおなじ長さ。\n桜の木の下で、おだんごとお茶。\nカレーねことほしねこ、いっしょにはなみ。🌸🍡',
+    wallX: 45,
+    pw: 64, ph: 32
   }
 ];
 
@@ -793,17 +803,7 @@ function drawGallery() {
     ctx.fillRect(0, y, canvas.width, 1);
   }
 
-  // Panel dividers in wainscoting
-  for (let tx = 0; tx < canvas.width / TILE + 2; tx++) {
-    const worldTX = Math.floor(cameraX / TILE) + tx;
-    const screenX = Math.round(worldTX * TILE - cameraX);
-    if (worldTX % 6 === 0) {
-      ctx.fillStyle = '#9a8a70';
-      ctx.fillRect(screenX, wainTop + 6, 2, wallBottom - wainTop - 8);
-      ctx.fillStyle = '#70634f';
-      ctx.fillRect(screenX + 2, wainTop + 6, 1, wallBottom - wainTop - 8);
-    }
-  }
+  // Panel dividers in wainscoting (removed — cleaner look)
 
   // Baseboard
   ctx.fillStyle = '#5a4a38';
