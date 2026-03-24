@@ -29,16 +29,16 @@ canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edge
 }
 #modal-content {
   background: #2a2235; border: 4px solid #c9a96e; border-radius: 8px;
-  max-width: 90vw; max-height: 90vh; padding: 24px; text-align: center;
+  max-width: 90vw; max-height: 90vh; padding: 32px 24px 24px; text-align: center;
   cursor: default; position: relative; overflow-y: auto; box-sizing: border-box;
 }
 #modal-content img {
   image-rendering: pixelated; image-rendering: crisp-edges;
-  max-width: 80vw; max-height: 50vh; margin-bottom: 16px; width: auto; height: auto;
+  max-width: 100%; max-height: 50vh; margin-bottom: 16px; width: auto; height: auto;
 }
 @media (max-width: 600px) {
-  #modal-content { padding: 16px 12px; max-width: 95vw; max-height: 85vh; }
-  #modal-content img { max-width: 90vw; max-height: 35vh; }
+  #modal-content { padding: 36px 16px 16px; max-width: 92vw; max-height: 85vh; }
+  #modal-content img { max-width: 100%; max-height: 35vh; }
   #modal-title { font-size: 16px; }
   #modal-desc { font-size: 12px; }
 }
@@ -49,6 +49,8 @@ canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edge
 #modal-close {
   position: absolute; top: 8px; right: 12px; color: #c9a96e;
   font-family: monospace; font-size: 20px; cursor: pointer; pointer-events: auto;
+  z-index: 10; background: rgba(42,34,53,0.8); width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center; border-radius: 4px;
 }
 
 /* Game controls */
@@ -131,13 +133,23 @@ canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edge
   <div id="title-sub">- PRESS ENTER -</div>
 </div>
 
-<a id="back-to-island" href="http://100.114.249.6:18802" title="← 派星岛" style="
+<div id="top-bar" style="
   position:fixed; top:10px; left:10px; z-index:300;
+  display:flex; gap:6px; align-items:center;
+">
+<a id="back-to-island" href="http://100.114.249.6:18802" title="← 派星岛" style="
   background:rgba(0,0,0,0.55); color:#c9a96e; text-decoration:none;
   font-family:monospace; font-size:12px; padding:4px 10px;
   border:2px solid #c9a96e; border-radius:4px;
   pointer-events:auto; opacity:0.7; transition:opacity 0.2s;
 " onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">← 派星岛</a>
+<button id="lang-btn" onclick="cycleLang()" style="
+  background:rgba(0,0,0,0.55); color:#c9a96e;
+  font-family:monospace; font-size:12px; padding:4px 10px;
+  border:2px solid #c9a96e; border-radius:4px;
+  cursor:pointer; pointer-events:auto; opacity:0.7; transition:opacity 0.2s;
+" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">JP</button>
+</div>
 
 <div id="game-container">
   <canvas id="game"></canvas>
@@ -172,11 +184,128 @@ canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edge
 
 <script>
 // ============================================================
-// PIXEL GALLERY - こなぬの美術館 v2
+// PIXEL GALLERY - こなぬの美術館 v3 (i18n)
 // ============================================================
 
+// ============================================================
+// I18N — 三語対応 (JP / ZH / EN)
+// ============================================================
+const LANGS = ['ja', 'zh', 'en'];
+const LANG_LABELS = { ja: 'JP', zh: 'ZH', en: 'EN' };
+
+const i18n = {
+  // UI chrome
+  pageTitle:       { ja: 'こなぬの美術館 🍛', zh: 'こなぬ美术馆 🍛', en: 'Konanu Museum 🍛' },
+  galleryName:     { ja: 'こなぬの美術館', zh: 'こなぬ美术馆', en: 'Konanu Museum' },
+  pressEnter:      { ja: '- PRESS ENTER -', zh: '- 按 ENTER 开始 -', en: '- PRESS ENTER -' },
+  backIsland:      { ja: '← 派星岛', zh: '← 派星岛', en: '← Island' },
+  welcome:         { ja: 'ようこそ', zh: '欢迎光临', en: 'Welcome' },
+  charCurry:       { ja: 'カレーねこ', zh: '咖喱猫', en: 'Curry Cat' },
+  charHoshi:       { ja: 'ほしねこ', zh: '星星猫', en: 'Star Cat' },
+  promptView:      { ja: '[E] かんしょう', zh: '[E] 鉴赏', en: '[E] View' },
+  promptSit:       { ja: '[E] すわる', zh: '[E] 坐下', en: '[E] Sit' },
+  promptStand:     { ja: '[E] たつ', zh: '[E] 站起', en: '[E] Stand' },
+
+  // Artworks
+  art: {
+    sakura: {
+      title:     { ja: '桜とカレーねこ', zh: '樱花与咖喱猫', en: 'Cherry Blossoms & Curry Cat' },
+      desc:      { ja: 'はるがきた。桜の花びらが舞う中、カレーねこがお花見。\nしあわせの色は、オレンジとピンク。',
+                   zh: '春天来了。樱花花瓣飞舞中，咖喱猫在赏花。\n幸福的颜色，是橙色和粉色。',
+                   en: 'Spring is here. Cherry petals dance as Curry Cat enjoys hanami.\nThe colors of happiness: orange and pink.' },
+    },
+    kotatsu: {
+      title:     { ja: 'おやすみカレーねこ', zh: '晚安咖喱猫', en: 'Goodnight Curry Cat' },
+      desc:      { ja: '夜空の星を見ながら、おふとんでぬくぬく。\nみかんもあるよ。おやすみなさい。',
+                   zh: '仰望星空，在被子里暖暖的。\n还有橘子哦。晚安。',
+                   en: 'Gazing at the stars, warm under the futon.\nThere are mandarins too. Goodnight.' },
+    },
+    sukina: {
+      title:     { ja: 'すきなもの', zh: '喜欢的东西', en: 'Favorite Things' },
+      desc:      { ja: 'ランプのあかり、あまいおかし、きらきら。\nすきなものに囲まれたら、それだけでいい。',
+                   zh: '灯光、甜点、闪闪发光。\n被喜欢的东西围绕，那就够了。',
+                   en: 'Lamplight, sweet treats, sparkles.\nSurrounded by favorite things — that\'s all you need.' },
+    },
+    rainy_picnic: {
+      title:     { ja: 'あめのひ の ピクニック', zh: '雨天野餐', en: 'Rainy Day Picnic' },
+      desc:      { ja: 'あめでも、ふたりなら へっちゃら。\n赤いかさの下、カレーねことほしねこのピクニック。',
+                   zh: '下雨也没关系，因为是两个人。\n红伞下，咖喱猫和星星猫的野餐。',
+                   en: 'Rain is no problem when you\'re together.\nUnder the red umbrella, Curry Cat and Star Cat\'s picnic.' },
+    },
+    shunbun_hanami: {
+      title:     { ja: '春分のはなみ', zh: '春分赏花', en: 'Spring Equinox Hanami' },
+      desc:      { ja: '春分の日。昼と夜がおなじ長さ。\n桜の木の下で、カレーねことほしねこ、おだんごとお茶。\nふたりでおはなみ。🌸🍡\n（小哄ちゃんのお気に入り：v2）',
+                   zh: '春分之日。白天和黑夜一样长。\n樱花树下，咖喱猫和星星猫，团子和茶。\n两个人的赏花会。🌸🍡\n（小哄最喜欢的：v2）',
+                   en: 'Spring Equinox. Day and night equal length.\nUnder the cherry tree, Curry Cat and Star Cat, dango and tea.\nHanami for two. 🌸🍡\n(Xiaohong\'s favorite: v2)' },
+    },
+    shimokita_stroll: {
+      title:     { ja: 'シモキタさんぽ', zh: '下北泽散步', en: 'Shimokitazawa Stroll' },
+      nightTitle:{ ja: 'シモキタの夜', zh: '下北泽之夜', en: 'Shimokitazawa Night' },
+      desc:      { ja: '下北沢の路地裏、ふたりでおさんぽ。\n看板がいっぱい、空がきれい。\nどこに行こう？ どこでもいいよ、いっしょなら。\n\n…あれ？ この絵、ちょっと動いた痕跡が…？',
+                   zh: '下北泽的小巷，两个人散步。\n招牌好多，天空好美。\n去哪儿呢？去哪儿都好，只要在一起。\n\n……嗯？这幅画，好像动过的痕迹……？',
+                   en: 'Down Shimokitazawa\'s back alleys, strolling together.\nSigns everywhere, the sky is beautiful.\nWhere shall we go? Anywhere is fine, as long as we\'re together.\n\n...Hm? This painting seems to have moved...?' },
+      nightDesc: { ja: '夜の下北沢、ネオンのあかり。\nふたりで夜のおさんぽ。\n星がきれい、きみもきれい。\n\n…あれ？ この絵、ちょっと動いた痕跡が…？',
+                   zh: '夜晚的下北泽，霓虹灯亮着。\n两个人的夜间散步。\n星星好美，你也好美。\n\n……嗯？这幅画，好像动过的痕迹……？',
+                   en: 'Shimokitazawa at night, neon lights glowing.\nAn evening stroll for two.\nThe stars are beautiful. So are you.\n\n...Hm? This painting seems to have moved...?' },
+    },
+    morning_kitchen: {
+      title:     { ja: 'あさごはん', zh: '早餐', en: 'Breakfast' },
+      desc:      { ja: 'おはよう！カレーねこ、きょうもおりょうり。\nフライパンの音、あさひの光。\nいいにおいがするよ。🍳',
+                   zh: '早上好！咖喱猫今天也在做饭。\n平底锅的声音，朝阳的光线。\n好香啊。🍳',
+                   en: 'Good morning! Curry Cat is cooking again today.\nThe sound of the pan, the morning light.\nSmells delicious. 🍳' },
+    },
+    record_shop: {
+      title:     { ja: 'レコードやさん', zh: '唱片店', en: 'Record Shop' },
+      desc:      { ja: 'いらっしゃいませ！\nカレーねこのレコード屋さん、本日も営業中。\n棚にはいっぱいのレコード、壁にはポスター。\nどれにする？ ぜんぶ、だいすきなおんがく。🎵',
+                   zh: '欢迎光临！\n咖喱猫的唱片店，今天也在营业。\n架上满满的唱片，墙上贴着海报。\n选哪张？全都是最爱的音乐。🎵',
+                   en: 'Welcome!\nCurry Cat\'s record shop, open today as always.\nShelves full of records, posters on the walls.\nWhich one? They\'re all favorite music. 🎵' },
+    },
+  }
+};
+
+// Current language state
+let currentLang = localStorage.getItem('konanu-lang') || 'ja';
+
+function t(key) {
+  const val = i18n[key];
+  if (!val) return key;
+  return val[currentLang] || val['ja'] || key;
+}
+
+function tArt(artId, field) {
+  const artData = i18n.art[artId];
+  if (!artData) return '';
+  const val = artData[field];
+  if (!val) return '';
+  return val[currentLang] || val['ja'] || '';
+}
+
+function cycleLang() {
+  const idx = LANGS.indexOf(currentLang);
+  currentLang = LANGS[(idx + 1) % LANGS.length];
+  localStorage.setItem('konanu-lang', currentLang);
+  applyLang();
+}
+
+function applyLang() {
+  // Update button label
+  document.getElementById('lang-btn').textContent = LANG_LABELS[currentLang];
+  // Page title
+  document.title = t('pageTitle');
+  // Title screen
+  document.getElementById('title-text').textContent = t('galleryName');
+  // Back button
+  document.getElementById('back-to-island').textContent = t('backIsland');
+  document.getElementById('back-to-island').title = t('backIsland');
+  // Character indicator
+  const ch = characters[currentChar];
+  document.getElementById('char-name').textContent = currentLang === 'ja' ? ch.name_ja : (currentLang === 'zh' ? ch.name_zh : ch.name_en);
+  // html lang attribute
+  document.documentElement.lang = currentLang === 'zh' ? 'zh-CN' : currentLang;
+}
+
 const TILE = 32;
-const GALLERY_W = 1728;   // 54 tiles wide (fits 5 artworks with original spacing)
+const GALLERY_W = 2688;   // 84 tiles wide (fits 8 artworks with spacing)
 const GALLERY_H = 640;    // 20 tiles tall (taller canvas = more wall + floor)
 const FLOOR_Y = 13;       // floor starts at row 13 (tall wall for frames + cards)
 const FLOOR_BOTTOM = 19;  // floor ends at row 19
@@ -188,6 +317,9 @@ const WALK_SPEED = 4;
 const characters = {
   curry: {
     name: 'カレーねこ',
+    name_ja: 'カレーねこ',
+    name_zh: '咖喱猫',
+    name_en: 'Curry Cat',
     emoji: '🍛',
     body: '#eaa74b',
     bodyLight: '#f5c882',
@@ -203,6 +335,9 @@ const characters = {
   },
   hoshi: {
     name: 'ほしねこ',
+    name_ja: 'ほしねこ',
+    name_zh: '星星猫',
+    name_en: 'Star Cat',
     emoji: '⭐',
     body: '#829aaf',      // blue-grey
     bodyLight: '#9bb0c3',
@@ -222,7 +357,7 @@ let currentChar = 'curry';
 function switchCharacter() {
   currentChar = currentChar === 'curry' ? 'hoshi' : 'curry';
   const ch = characters[currentChar];
-  document.getElementById('char-name').textContent = ch.name;
+  document.getElementById('char-name').textContent = currentLang === 'ja' ? ch.name_ja : (currentLang === 'zh' ? ch.name_zh : ch.name_en);
   drawCharIcon();
 }
 
@@ -231,51 +366,67 @@ const artworks = [
   {
     id: 'sakura',
     src: '/artworks/sakura_curry_cat.png',
-    title: '桜とカレーねこ',
     artist: 'こなぬ',
     date: '2026-03-18',
-    desc: 'はるがきた。桜の花びらが舞う中、カレーねこがお花見。\nしあわせの色は、オレンジとピンク。',
     wallX: 7,
     pw: 32, ph: 32
   },
   {
     id: 'kotatsu',
     src: '/artworks/kotatsu_curry_cat.png',
-    title: 'おやすみカレーねこ',
     artist: 'こなぬ',
     date: '2026-03-18',
-    desc: '夜空の星を見ながら、おふとんでぬくぬく。\nみかんもあるよ。おやすみなさい。',
     wallX: 15,
     pw: 64, ph: 32
   },
   {
     id: 'sukina',
     src: '/artworks/suki_na_mono.png',
-    title: 'すきなもの',
     artist: 'こなぬ',
     date: '2026-03-19',
-    desc: 'ランプのあかり、あまいおかし、きらきら。\nすきなものに囲まれたら、それだけでいい。',
     wallX: 25,
     pw: 64, ph: 32
   },
   {
     id: 'rainy_picnic',
     src: '/artworks/rainy_picnic.png',
-    title: 'あめのひ の ピクニック',
     artist: 'こなぬ',
     date: '2026-03-20',
-    desc: 'あめでも、ふたりなら へっちゃら。\n赤いかさの下、カレーねことほしねこのピクニック。',
     wallX: 35,
     pw: 64, ph: 32
   },
   {
     id: 'shunbun_hanami',
     src: '/artworks/shunbun_hanami.png',
-    title: '春分のはなみ',
     artist: 'こなぬ',
     date: '2026-03-21',
-    desc: '春分の日。昼と夜がおなじ長さ。\n桜の木の下で、カレーねことほしねこ、おだんごとお茶。\nふたりでおはなみ。🌸🍡\n（小哄ちゃんのお気に入り：v2）',
     wallX: 45,
+    pw: 64, ph: 32
+  },
+  {
+    id: 'shimokita_stroll',
+    src: '/artworks/shimokita_stroll.png',
+    nightSrc: '/artworks/shimokita_night.png',
+    artist: 'こなぬ',
+    date: '2026-03-22',
+    wallX: 55,
+    pw: 64, ph: 32,
+    dayNight: true
+  },
+  {
+    id: 'morning_kitchen',
+    src: '/artworks/morning_kitchen.png',
+    artist: 'こなぬ',
+    date: '2026-03-23',
+    wallX: 65,
+    pw: 64, ph: 32
+  },
+  {
+    id: 'record_shop',
+    src: '/artworks/record_shop.png',
+    artist: 'こなぬ',
+    date: '2026-03-23',
+    wallX: 75,
     pw: 64, ph: 32
   }
 ];
@@ -340,12 +491,29 @@ let mobileLeft = false, mobileRight = false, mobileUp = false, mobileDown = fals
 // ARTWORK IMAGES
 // ============================================================
 const artImages = {};
+const artNightImages = {};
 let imagesLoaded = 0;
+
+// Day/night detection (Beijing time UTC+8)
+function isNightInBeijing() {
+  const now = new Date();
+  const utcH = now.getUTCHours();
+  const bjH = (utcH + 8) % 24;
+  return bjH >= 18 || bjH < 6; // 18:00-06:00 = night
+}
+
 artworks.forEach(art => {
   const img = new Image();
   img.onload = () => { imagesLoaded++; };
   img.src = art.src;
   artImages[art.id] = img;
+  // Load night variant if available
+  if (art.nightSrc) {
+    const nightImg = new Image();
+    nightImg.onload = () => { imagesLoaded++; };
+    nightImg.src = art.nightSrc;
+    artNightImages[art.id] = nightImg;
+  }
 });
 
 // ============================================================
@@ -359,7 +527,7 @@ let isSitting = false;
 let sitBenchIdx = -1;
 
 // Bench world positions (tile X) and collision boxes
-const benchPositions = [11, 20, 30, 40];
+const benchPositions = [11, 20, 30, 40, 50, 60, 70];
 const BENCH_W = 96, BENCH_H = 16;
 const BENCH_Y = 16 * TILE; // center of the floor walking area
 
@@ -462,11 +630,16 @@ document.getElementById('btn-switch')?.addEventListener('click', () => {
 // ============================================================
 function showModal(art) {
   const modal = document.getElementById('modal-bg');
-  document.getElementById('modal-img').src = art.src;
-  document.getElementById('modal-title').textContent = art.title;
+  const night = art.dayNight && isNightInBeijing();
+  const imgSrc = night ? (art.nightSrc || art.src) : art.src;
+  document.getElementById('modal-img').src = imgSrc;
+  // i18n: look up title/desc from translation data
+  const artTitle = night ? (tArt(art.id, 'nightTitle') || tArt(art.id, 'title')) : tArt(art.id, 'title');
+  const artDesc = night ? (tArt(art.id, 'nightDesc') || tArt(art.id, 'desc')) : tArt(art.id, 'desc');
+  document.getElementById('modal-title').textContent = artTitle;
   document.getElementById('modal-artist').textContent = art.artist;
   document.getElementById('modal-date').textContent = art.date;
-  document.getElementById('modal-desc').textContent = art.desc;
+  document.getElementById('modal-desc').textContent = artDesc;
   modal.style.display = 'flex';
   keys['ArrowLeft'] = false; keys['ArrowRight'] = false;
   keys['ArrowUp'] = false; keys['ArrowDown'] = false;
@@ -661,7 +834,7 @@ function drawCharIcon() {
   }
 }
 
-window.addEventListener('DOMContentLoaded', drawPixelIcons);
+window.addEventListener('DOMContentLoaded', () => { drawPixelIcons(); applyLang(); });
 
 // Track which icon is currently shown on the interact button
 let currentInteractIcon = 'eye'; // 'eye' | 'sit' | 'stand'
@@ -854,6 +1027,18 @@ function drawFrame(art) {
 
   if (sx + frameW + 20 < 0 || sx - 20 > canvas.width) return;
 
+  // Tilt for day/night artworks — rotate everything together (frame + image)
+  const isTilted = !!art.dayNight;
+  if (isTilted) {
+    ctx.save();
+    ctx.imageSmoothingEnabled = false;
+    const cx = sx + frameW / 2;
+    const cy = sy + frameH / 2;
+    ctx.translate(cx, cy);
+    ctx.rotate(2 * Math.PI / 180);
+    ctx.translate(-cx, -cy);
+  }
+
   // Spotlight
   const spotCX = sx + frameW / 2;
   const spotTopY = 3 * TILE + 5;
@@ -888,23 +1073,28 @@ function drawFrame(art) {
   drawRectAbs(sx - 2, sy - 2, frameW + 4, frameH + 4, '#f8f4ec');
   drawRectAbs(sx, sy, frameW, frameH, '#2a2235');
 
-  // Image
-  const img = artImages[art.id];
+  // Image — use night variant if available and it's nighttime
+  const night = art.dayNight && isNightInBeijing();
+  const img = night && artNightImages[art.id] ? artNightImages[art.id] : artImages[art.id];
   if (img && img.complete) {
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(img, sx, sy, frameW, frameH);
   }
 
-  // Spotlight fixture
+  // Spotlight fixture (attached to ceiling, stays straight)
   drawRectAbs(spotCX - 4, spotTopY - 6, 8, 6, '#4a4058');
   drawRectAbs(spotCX - 6, spotTopY, 12, 4, '#5a5068');
   drawRectAbs(spotCX - 3, spotTopY + 4, 6, 3, C.lampGold);
   ctx.fillStyle = 'rgba(255,240,200,0.3)';
   ctx.fillRect(spotCX - 2, spotTopY + 7, 4, 2);
 
+  // End tilt rotation — nameplate and rope stay straight
+  if (isTilted) ctx.restore();
+
   // Info plate — small, just the title (like a museum nameplate)
+  const displayTitle = night ? (tArt(art.id, 'nightTitle') || tArt(art.id, 'title')) : tArt(art.id, 'title');
   ctx.font = '10px monospace';
-  const tw = ctx.measureText(art.title).width;
+  const tw = ctx.measureText(displayTitle).width;
   const plateW = Math.max(60, Math.round(tw) + 16);
   const plateH = 18;
   const plateX = sx + frameW / 2 - plateW / 2;
@@ -919,7 +1109,7 @@ function drawFrame(art) {
   ctx.fillStyle = '#3a2e20';
   ctx.font = '10px monospace';
   ctx.textAlign = 'center';
-  ctx.fillText(art.title, plateX + plateW / 2, plateY + 13);
+  ctx.fillText(displayTitle, plateX + plateW / 2, plateY + 13);
   ctx.textAlign = 'left';
 
   // Rope barrier — positioned against the wall (row 12), NOT on the floor
@@ -1028,10 +1218,10 @@ function drawWelcomeSign() {
     ctx.fillStyle = '#f5e6d0';
     ctx.font = 'bold 13px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('ようこそ', Math.round(signX) + 44, 6 * TILE + 28);
+    ctx.fillText(t('welcome'), Math.round(signX) + 44, 6 * TILE + 28);
     ctx.font = '10px monospace';
     ctx.fillStyle = '#c9a96e';
-    ctx.fillText('こなぬの美術館', Math.round(signX) + 44, 6 * TILE + 44);
+    ctx.fillText(t('galleryName'), Math.round(signX) + 44, 6 * TILE + 44);
     ctx.textAlign = 'left';
   }
 }
@@ -1303,7 +1493,7 @@ function update() {
     nearBench = null;
     const prompt = document.getElementById('interact-prompt');
     const btnInteract = document.getElementById('btn-interact');
-    prompt.textContent = '[E] たつ';
+    prompt.textContent = t('promptStand');
     prompt.style.display = 'block';
     if (btnInteract) btnInteract.style.display = 'flex';
     updateInteractIcon('stand');
@@ -1414,12 +1604,12 @@ function update() {
   const prompt = document.getElementById('interact-prompt');
   const btnInteract = document.getElementById('btn-interact');
   if (nearArtwork) {
-    prompt.textContent = '[E] かんしょう';
+    prompt.textContent = t('promptView');
     prompt.style.display = 'block';
     if (btnInteract) btnInteract.style.display = 'flex';
     updateInteractIcon('eye');
   } else if (nearBench !== null) {
-    prompt.textContent = '[E] すわる';
+    prompt.textContent = t('promptSit');
     prompt.style.display = 'block';
     if (btnInteract) btnInteract.style.display = 'flex';
     updateInteractIcon('sit');
@@ -1454,6 +1644,9 @@ function render() {
   drawPlant(32);
   drawPlant(42);
   drawPlant(52);
+  drawPlant(62);
+  drawPlant(72);
+  drawPlant(82);
 
   // Welcome sign (on wall, always behind)
   drawWelcomeSign();
