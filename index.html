@@ -582,12 +582,18 @@ let lastPawX = 0;            // last paw print X position
 const PAW_INTERVAL = 40;     // spawn every 40px
 const PAW_MAX_AGE = 180;     // 3 seconds at 60fps
 
+const visitorChars = ['moss', 'xx'];
+const normalChars = ['curry', 'hoshi'];
+
 function switchCharacter() {
-  if (isVisitorMode) return; // visitors can't switch
-  currentChar = currentChar === 'curry' ? 'hoshi' : 'curry';
-  const ch = characters[currentChar];
-  document.getElementById('char-name').textContent = currentLang === 'ja' ? ch.name_ja : (currentLang === 'zh' ? ch.name_zh : ch.name_en);
-  drawCharIcon();
+  if (isVisitorMode) {
+    // Cycle through visitor characters
+    const idx = visitorChars.indexOf(currentChar);
+    currentChar = visitorChars[(idx + 1) % visitorChars.length];
+  } else {
+    currentChar = currentChar === 'curry' ? 'hoshi' : 'curry';
+  }
+  updateCharUI();
 }
 
 // Artwork data — wallX positions spaced out well, no overlap with decorations
@@ -809,20 +815,11 @@ function startVisitor(charId) {
   currentChar = charId;
   titleScreen.style.display = 'none';
   visitorScreen.style.display = 'none';
-  // Hide switch button and d-pad for visitors (auto-walk!)
-  document.getElementById('btn-switch').style.display = 'none';
-  document.getElementById('dpad').style.display = 'none';
-  document.getElementById('btn-interact')?.style.setProperty('display', 'none');
-  // Initialize tour state
-  tourIndex = -1;
-  tourState = 'walk';
-  tourTimer = 0;
-  tourBubbleOpacity = 0;
-  tourBubbleText = '';
-  lastPawX = player.x;
-  // Start player at the left side
-  player.x = 32;
-  player.y = FLOOR_Y * TILE - player.h + 10;
+  // Show switch button (cycles through visitors) and d-pad
+  document.getElementById('btn-switch').style.display = 'flex';
+  // Player starts at left
+  player.x = 64;
+  player.y = FLOOR_Y * TILE + 16;
   player.facing = 1;
   updateCharUI();
   requestAnimationFrame(gameLoop);
@@ -930,6 +927,10 @@ document.getElementById('btn-switch')?.addEventListener('click', () => {
 // ============================================================
 function showModal(art) {
   currentModalArt = art;
+  // Visitor mode: spawn a heart when viewing artwork!
+  if (isVisitorMode) {
+    spawnFloatingReaction();
+  }
   const modal = document.getElementById('modal-bg');
   const night = art.dayNight && isNightInBeijing();
   const imgSrc = night ? (art.nightSrc || art.src) : art.src;
@@ -1903,14 +1904,6 @@ function update() {
   const modalOpen = document.getElementById('modal-bg').style.display === 'flex';
   if (modalOpen) return;
 
-  // ============================================================
-  // VISITOR AUTO-WALK MODE
-  // ============================================================
-  if (isVisitorMode) {
-    updateVisitorMode();
-    return;
-  }
-
   // If sitting, freeze player movement — only allow standing up
   if (isSitting) {
     player.vx = 0;
@@ -2015,6 +2008,25 @@ function update() {
 
   player.x = newX;
   player.y = newY;
+
+  // Paw prints for visitor mode (non-ghost cats only)
+  if (isVisitorMode && !characters[currentChar].isGhost) {
+    if (Math.abs(player.vx) > 0.1 && Math.abs(player.x - lastPawX) >= PAW_INTERVAL) {
+      pawPrints.push({
+        x: player.x + player.w / 2,
+        y: player.y + player.h - 4,
+        age: 0,
+        maxAge: PAW_MAX_AGE
+      });
+      lastPawX = player.x;
+    }
+  }
+
+  // Update paw print ages
+  for (let i = pawPrints.length - 1; i >= 0; i--) {
+    pawPrints[i].age++;
+    if (pawPrints[i].age >= pawPrints[i].maxAge) pawPrints.splice(i, 1);
+  }
 
   // Camera follow (X only)
   const targetCam = player.x - canvas.width / 2 + player.w / 2;
