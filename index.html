@@ -1571,13 +1571,14 @@ function drawWelcomeSign() {
 function drawPlayer() {
   const ch = characters[currentChar];
   const px = Math.round(player.x - cameraX);
-  const py = Math.round(player.y);
+  let py = Math.round(player.y);
   const f = player.facing;
   const S = ch.isGhost ? 3.5 : 3;  // ghost cat is slightly taller!
 
-  // Ghost transparency
+  // Ghost transparency + floating bob
   if (ch.isGhost) {
     ctx.save();
+    py += Math.sin(Date.now() / 600) * 3; // gentle floating bob
     ctx.globalAlpha = ch.ghostAlpha + Math.sin(Date.now() / 1000) * 0.08; // subtle shimmer
   }
 
@@ -1588,9 +1589,11 @@ function drawPlayer() {
     const bx = px + 1*S;
     const by = py + 10*S;
 
-    // Shadow
-    ctx.fillStyle = 'rgba(0,0,0,0.15)';
-    ctx.fillRect(bx - 1*S, by + bh, bw + 2*S, 2*S);
+    // Shadow (ghosts don't cast shadows)
+    if (!ch.isGhost) {
+      ctx.fillStyle = 'rgba(0,0,0,0.15)';
+      ctx.fillRect(bx - 1*S, by + bh, bw + 2*S, 2*S);
+    }
 
     // Tail (curled to the side)
     ctx.fillStyle = ch.body;
@@ -1725,9 +1728,11 @@ function drawPlayer() {
     if (player.blinkTimer > 126) { player.isBlinking = false; player.blinkTimer = 0; }
   }
 
-  // Shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.2)';
-  ctx.fillRect(px, py + player.h - S, player.w, 2*S);
+  // Shadow (ghosts don't cast shadows)
+  if (!ch.isGhost) {
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.fillRect(px, py + player.h - S, player.w, 2*S);
+  }
 
   // Tail
   const tailX = f === 1 ? bx - 3*S : bx + bw + 1*S;
@@ -2115,8 +2120,8 @@ function updateVisitorMode() {
       player.facing = dx > 0 ? 1 : -1;
       player.x += player.vx;
 
-      // Spawn paw prints
-      if (Math.abs(player.x - lastPawX) >= PAW_INTERVAL) {
+      // Spawn paw prints (ghosts float — no paw prints!)
+      if (!characters[currentChar].isGhost && Math.abs(player.x - lastPawX) >= PAW_INTERVAL) {
         pawPrints.push({
           x: player.x + player.w / 2,
           y: player.y + player.h - 4,
