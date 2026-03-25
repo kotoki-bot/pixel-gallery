@@ -138,14 +138,18 @@ canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edge
   display:flex; gap:6px; align-items:center;
 ">
 <a id="back-to-island" href="http://100.114.249.6:18802" title="← 派星岛" style="
+  display:inline-flex; align-items:center; box-sizing:border-box;
+  height:28px; line-height:1;
   background:rgba(0,0,0,0.55); color:#c9a96e; text-decoration:none;
-  font-family:monospace; font-size:12px; padding:4px 10px;
+  font-family:monospace; font-size:12px; padding:0 10px;
   border:2px solid #c9a96e; border-radius:4px;
   pointer-events:auto; opacity:0.7; transition:opacity 0.2s;
 " onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">← 派星岛</a>
 <button id="lang-btn" onclick="cycleLang()" style="
+  display:inline-flex; align-items:center; box-sizing:border-box;
+  height:28px; line-height:1;
   background:rgba(0,0,0,0.55); color:#c9a96e;
-  font-family:monospace; font-size:12px; padding:4px 10px;
+  font-family:monospace; font-size:12px; padding:0 10px;
   border:2px solid #c9a96e; border-radius:4px;
   cursor:pointer; pointer-events:auto; opacity:0.7; transition:opacity 0.2s;
 " onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">JP</button>
@@ -229,24 +233,24 @@ const i18n = {
     rainy_picnic: {
       title:     { ja: 'あめのひ の ピクニック', zh: '雨天野餐', en: 'Rainy Day Picnic' },
       desc:      { ja: 'あめでも、ふたりなら へっちゃら。\n赤いかさの下、カレーねことほしねこのピクニック。',
-                   zh: '下雨也没关系，因为是两个人。\n红伞下，咖喱猫和星星猫的野餐。',
+                   zh: '下雨也没关系，因为是两只咪。\n红伞下，咖喱猫和星星猫的野餐。',
                    en: 'Rain is no problem when you\'re together.\nUnder the red umbrella, Curry Cat and Star Cat\'s picnic.' },
     },
     shunbun_hanami: {
       title:     { ja: '春分のはなみ', zh: '春分赏花', en: 'Spring Equinox Hanami' },
       desc:      { ja: '春分の日。昼と夜がおなじ長さ。\n桜の木の下で、カレーねことほしねこ、おだんごとお茶。\nふたりでおはなみ。🌸🍡\n（小哄ちゃんのお気に入り：v2）',
-                   zh: '春分之日。白天和黑夜一样长。\n樱花树下，咖喱猫和星星猫，团子和茶。\n两个人的赏花会。🌸🍡\n（小哄最喜欢的：v2）',
-                   en: 'Spring Equinox. Day and night equal length.\nUnder the cherry tree, Curry Cat and Star Cat, dango and tea.\nHanami for two. 🌸🍡\n(Xiaohong\'s favorite: v2)' },
+                   zh: '春分之日。白天和黑夜一样长。\n樱花树下，咖喱猫和星星猫，团子和茶。\n两只咪的赏花会。🌸🍡\n（小哄最喜欢的：v2）',
+                   en: 'Spring Equinox. Day and night equal length.\nUnder the cherry tree, Curry Cat and Star Cat, dango and tea.\nHanami for two cats. 🌸🍡\n(Xiaohong\'s favorite: v2)' },
     },
     shimokita_stroll: {
       title:     { ja: 'シモキタさんぽ', zh: '下北泽散步', en: 'Shimokitazawa Stroll' },
       nightTitle:{ ja: 'シモキタの夜', zh: '下北泽之夜', en: 'Shimokitazawa Night' },
       desc:      { ja: '下北沢の路地裏、ふたりでおさんぽ。\n看板がいっぱい、空がきれい。\nどこに行こう？ どこでもいいよ、いっしょなら。\n\n…あれ？ この絵、ちょっと動いた痕跡が…？',
-                   zh: '下北泽的小巷，两个人散步。\n招牌好多，天空好美。\n去哪儿呢？去哪儿都好，只要在一起。\n\n……嗯？这幅画，好像动过的痕迹……？',
+                   zh: '下北泽的小巷，两只咪散步。\n招牌好多，天空好美。\n去哪儿呢？去哪儿都好，只要在一起。\n\n……嗯？这幅画，好像动过的痕迹……？',
                    en: 'Down Shimokitazawa\'s back alleys, strolling together.\nSigns everywhere, the sky is beautiful.\nWhere shall we go? Anywhere is fine, as long as we\'re together.\n\n...Hm? This painting seems to have moved...?' },
       nightDesc: { ja: '夜の下北沢、ネオンのあかり。\nふたりで夜のおさんぽ。\n星がきれい、きみもきれい。\n\n…あれ？ この絵、ちょっと動いた痕跡が…？',
-                   zh: '夜晚的下北泽，霓虹灯亮着。\n两个人的夜间散步。\n星星好美，你也好美。\n\n……嗯？这幅画，好像动过的痕迹……？',
-                   en: 'Shimokitazawa at night, neon lights glowing.\nAn evening stroll for two.\nThe stars are beautiful. So are you.\n\n...Hm? This painting seems to have moved...?' },
+                   zh: '夜晚的下北泽，霓虹灯亮着。\n两只咪的夜间散步。\n星星好美，你也好美。\n\n……嗯？这幅画，好像动过的痕迹……？',
+                   en: 'Shimokitazawa at night, neon lights glowing.\nAn evening stroll for two cats.\nThe stars are beautiful. So are you.\n\n...Hm? This painting seems to have moved...?' },
     },
     morning_kitchen: {
       title:     { ja: 'あさごはん', zh: '早餐', en: 'Breakfast' },
@@ -259,6 +263,12 @@ const i18n = {
       desc:      { ja: 'いらっしゃいませ！\nカレーねこのレコード屋さん、本日も営業中。\n棚にはいっぱいのレコード、壁にはポスター。\nどれにする？ ぜんぶ、だいすきなおんがく。🎵',
                    zh: '欢迎光临！\n咖喱猫的唱片店，今天也在营业。\n架上满满的唱片，墙上贴着海报。\n选哪张？全都是最爱的音乐。🎵',
                    en: 'Welcome!\nCurry Cat\'s record shop, open today as always.\nShelves full of records, posters on the walls.\nWhich one? They\'re all favorite music. 🎵' },
+    },
+    matsuri: {
+      title:     { ja: 'おまつり', zh: '夏日祭', en: 'Summer Festival' },
+      desc:      { ja: 'なつだ！おまつりだ！\nカレーねこはわたあめ、ほしねこはりんごあめ。\n提灯のあかり、花火の音、屋台のにおい。\nふたりで歩く、夏の夜。🎆🍛⭐',
+                   zh: '夏天来了！祭典开始了！\n咖喱猫拿着棉花糖，星星猫拿着苹果糖。\n灯笼的光，烟花的声音，摊位的香味。\n两只咪走在夏夜里。🎆🍛⭐',
+                   en: 'Summer! Festival time!\nCurry Cat has cotton candy, Star Cat has candy apple.\nLantern glow, fireworks, the smell of food stalls.\nTwo cats walking through a summer night. 🎆🍛⭐' },
     },
   }
 };
@@ -302,10 +312,16 @@ function applyLang() {
   document.getElementById('char-name').textContent = currentLang === 'ja' ? ch.name_ja : (currentLang === 'zh' ? ch.name_zh : ch.name_en);
   // html lang attribute
   document.documentElement.lang = currentLang === 'zh' ? 'zh-CN' : currentLang;
+  // Update open modal if visible
+  if (document.getElementById('modal-bg').style.display === 'flex' && currentModalArt) {
+    const night = currentModalArt.dayNight && isNightInBeijing();
+    document.getElementById('modal-title').textContent = night ? (tArt(currentModalArt.id, 'nightTitle') || tArt(currentModalArt.id, 'title')) : tArt(currentModalArt.id, 'title');
+    document.getElementById('modal-desc').textContent = night ? (tArt(currentModalArt.id, 'nightDesc') || tArt(currentModalArt.id, 'desc')) : tArt(currentModalArt.id, 'desc');
+  }
 }
 
 const TILE = 32;
-const GALLERY_W = 2688;   // 84 tiles wide (fits 8 artworks with spacing)
+const GALLERY_W = 3072;   // 96 tiles wide (auto-sized for 9 artworks)
 const GALLERY_H = 640;    // 20 tiles tall (taller canvas = more wall + floor)
 const FLOOR_Y = 13;       // floor starts at row 13 (tall wall for frames + cards)
 const FLOOR_BOTTOM = 19;  // floor ends at row 19
@@ -428,6 +444,14 @@ const artworks = [
     date: '2026-03-23',
     wallX: 75,
     pw: 64, ph: 32
+  },
+  {
+    id: 'matsuri',
+    src: '/artworks/matsuri.png',
+    artist: 'こなぬ',
+    date: '2026-03-24',
+    wallX: 85,
+    pw: 64, ph: 32
   }
 ];
 
@@ -522,12 +546,13 @@ artworks.forEach(art => {
 let gameStarted = false;
 let cameraX = 0;
 let nearArtwork = null;
+let currentModalArt = null;
 let nearBench = null;
 let isSitting = false;
 let sitBenchIdx = -1;
 
 // Bench world positions (tile X) and collision boxes
-const benchPositions = [11, 20, 30, 40, 50, 60, 70];
+const benchPositions = [11, 20, 30, 40, 50, 60, 70, 80];
 const BENCH_W = 96, BENCH_H = 16;
 const BENCH_Y = 16 * TILE; // center of the floor walking area
 
@@ -629,6 +654,7 @@ document.getElementById('btn-switch')?.addEventListener('click', () => {
 // MODAL
 // ============================================================
 function showModal(art) {
+  currentModalArt = art;
   const modal = document.getElementById('modal-bg');
   const night = art.dayNight && isNightInBeijing();
   const imgSrc = night ? (art.nightSrc || art.src) : art.src;
@@ -648,6 +674,7 @@ function showModal(art) {
 }
 function closeModal() {
   document.getElementById('modal-bg').style.display = 'none';
+  currentModalArt = null;
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
@@ -1647,6 +1674,7 @@ function render() {
   drawPlant(62);
   drawPlant(72);
   drawPlant(82);
+  drawPlant(92);
 
   // Welcome sign (on wall, always behind)
   drawWelcomeSign();
