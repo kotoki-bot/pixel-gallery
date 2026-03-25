@@ -230,6 +230,7 @@ canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edge
       <div class="welcome-door-sub" id="door-visitor-sub">ねこたちが遊びに来たよ</div>
       <div class="welcome-door-preview">
         <canvas width="32" height="32" id="preview-moss"></canvas>
+        <canvas width="32" height="32" id="preview-xx" style="opacity:0.6"></canvas>
       </div>
     </div>
   </div>
@@ -242,7 +243,12 @@ canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edge
     <div class="visitor-card" onclick="startVisitor('moss')" ontouchstart="event.preventDefault();startVisitor('moss')">
       <canvas width="48" height="48" id="card-moss"></canvas>
       <div class="visitor-card-name">🌿 Moss</div>
-      <div class="visitor-card-desc" id="moss-desc">初めての訪客！好奇心旺盛なめがねねこ</div>
+      <div class="visitor-card-desc" id="moss-desc">初めての訪客！好奇心旺盛なおしゃれねこ</div>
+    </div>
+    <div class="visitor-card" onclick="startVisitor('xx')" ontouchstart="event.preventDefault();startVisitor('xx')" style="border-color: #8a7aaa;">
+      <canvas width="48" height="48" id="card-xx"></canvas>
+      <div class="visitor-card-name">👻 XXねこ</div>
+      <div class="visitor-card-desc" id="xx-desc">ふわふわ半透明のゆうれいねこ</div>
     </div>
   </div>
   <div id="visitor-back" onclick="hideVisitorScreen()" ontouchstart="event.preventDefault();hideVisitorScreen()">← もどる</div>
@@ -332,6 +338,7 @@ const i18n = {
   backToTitle:     { ja: '← もどる', zh: '← 返回', en: '← Back' },
   visitorTag:      { ja: '🎟️ 訪客', zh: '🎟️ 访客', en: '🎟️ Visitor' },
   mossDesc:        { ja: '初めての訪客！好奇心旺盛なおしゃれねこ', zh: '第一位访客！好奇心旺盛的时髦小猫', en: 'First visitor! A curious, stylish cat' },
+  xxDesc:          { ja: 'ふわふわ半透明のゆうれいねこ', zh: '飘飘忽忽的半透明幽灵小猫', en: 'A floaty, semi-transparent ghost cat' },
   welcomeVisitor:  { ja: 'ようこそ、{name}さん！', zh: '欢迎，{name}！', en: 'Welcome, {name}!' },
   tourComplete:    { ja: 'かんしょう おわり！🎨✨\nまた あそびにきてね！', zh: '鉴赏完毕！🎨✨\n下次再来玩哦！', en: 'Tour Complete! 🎨✨\nCome visit again!' },
 
@@ -441,6 +448,7 @@ function applyLang() {
   document.getElementById('visitor-title').textContent = t('selectVisitor');
   document.getElementById('visitor-back').textContent = t('backToTitle');
   document.getElementById('moss-desc').textContent = t('mossDesc');
+  document.getElementById('xx-desc').textContent = t('xxDesc');
   // Character indicator
   const ch = characters[currentChar];
   const nameText = currentLang === 'ja' ? ch.name_ja : (currentLang === 'zh' ? ch.name_zh : ch.name_en);
@@ -523,6 +531,27 @@ const characters = {
     glassesColor: '#28371f',
     glassesLens: '#d2e1c8',
     isVisitor: true,
+  },
+  xx: {
+    name: 'XXねこ',
+    name_ja: 'XXねこ',
+    name_zh: '叉叉猫',
+    name_en: 'XX Cat',
+    emoji: '👻',
+    body: '#c8c8d8',          // pale ghostly lavender-grey
+    bodyLight: '#dddde8',
+    bodyDark: '#a0a0b8',
+    belly: '#e8e8f0',         // very pale
+    pink: '#c8a0b0',          // muted pink (ghostly)
+    eye: '#4a4060',           // deep purple-grey
+    outline: '#606078',
+    hasStripes: false,
+    hasStar: false,
+    hasGlasses: false,
+    hasLashes: false,
+    isVisitor: true,
+    isGhost: true,            // semi-transparent rendering!
+    ghostAlpha: 0.6,          // base transparency
   }
 };
 
@@ -1028,6 +1057,7 @@ function drawCharIcon() {
   x.clearRect(0, 0, 16, 16);
 
   const ch = characters[currentChar];
+  if (ch.isGhost) x.globalAlpha = ch.ghostAlpha;
   const bodyColor = ch.body;
   const bellyColor = ch.belly;
   const eyeColor = ch.eye;
@@ -1126,6 +1156,8 @@ function drawCharIcon() {
   x.fillStyle = bodyColor;
   x.fillRect(3, 12, 2, 1); x.fillRect(5, 12, 1, 1);
   x.fillRect(10, 12, 1, 1); x.fillRect(11, 12, 2, 1);
+
+  if (ch.isGhost) x.globalAlpha = 1.0;
 }
 
 window.addEventListener('DOMContentLoaded', () => { drawPixelIcons(); applyLang(); drawAllPreviews(); });
@@ -1537,7 +1569,13 @@ function drawPlayer() {
   const px = Math.round(player.x - cameraX);
   const py = Math.round(player.y);
   const f = player.facing;
-  const S = 3;
+  const S = ch.isGhost ? 3.5 : 3;  // ghost cat is slightly taller!
+
+  // Ghost transparency
+  if (ch.isGhost) {
+    ctx.save();
+    ctx.globalAlpha = ch.ghostAlpha + Math.sin(Date.now() / 1000) * 0.08; // subtle shimmer
+  }
 
   // === SITTING POSE ===
   if (isSitting) {
@@ -1659,6 +1697,7 @@ function drawPlayer() {
       ctx.fillRect(eyeR + 2*S, hy + 2*S, 1*S, 1*S);
     }
 
+    if (ch.isGhost) ctx.restore();
     return; // skip normal drawing
   }
 
@@ -1844,6 +1883,8 @@ function drawPlayer() {
       ctx.fillRect(outerR, hy + 3*S, 1*S, 1*S);
     }
   }
+
+  if (ch.isGhost) ctx.restore();
 }
 
 // ============================================================
@@ -2278,6 +2319,8 @@ function drawPreviewCat(canvasId, charDef, size) {
   const x = c.getContext('2d');
   x.imageSmoothingEnabled = false;
   x.clearRect(0, 0, c.width, c.height);
+  if (charDef.isGhost) x.globalAlpha = charDef.ghostAlpha;
+  x.clearRect(0, 0, c.width, c.height);
   const s = size || 2; // pixel scale
   // Use same 16x16 layout as drawCharIcon, scaled by s
   const ox = Math.floor((c.width - 16*s) / 2);
@@ -2393,13 +2436,17 @@ function drawPreviewCat(canvasId, charDef, size) {
   px(5, 12);
   px(10, 12);
   x.fillRect(ox + 11*s, oy + 12*s, 2*s, s);
+
+  if (charDef.isGhost) x.globalAlpha = 1.0;
 }
 
 function drawAllPreviews() {
   drawPreviewCat('preview-curry', characters.curry, 2);
   drawPreviewCat('preview-hoshi', characters.hoshi, 2);
   drawPreviewCat('preview-moss', characters.moss, 2);
+  drawPreviewCat('preview-xx', characters.xx, 2);
   drawPreviewCat('card-moss', characters.moss, 3);
+  drawPreviewCat('card-xx', characters.xx, 3);
 }
 
 // ============================================================
