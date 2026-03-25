@@ -331,7 +331,7 @@ const i18n = {
   selectVisitor:   { ja: '遊びに来たねこ', zh: '来参观的小猫', en: 'Visiting Cats' },
   backToTitle:     { ja: '← もどる', zh: '← 返回', en: '← Back' },
   visitorTag:      { ja: '🎟️ 訪客', zh: '🎟️ 访客', en: '🎟️ Visitor' },
-  mossDesc:        { ja: '初めての訪客！好奇心旺盛なめがねねこ', zh: '第一位访客！好奇心旺盛的眼镜猫', en: 'First visitor! A curious cat with glasses' },
+  mossDesc:        { ja: '初めての訪客！好奇心旺盛なおしゃれねこ', zh: '第一位访客！好奇心旺盛的时髦小猫', en: 'First visitor! A curious, stylish cat' },
   welcomeVisitor:  { ja: 'ようこそ、{name}さん！', zh: '欢迎，{name}！', en: 'Welcome, {name}!' },
   tourComplete:    { ja: 'かんしょう おわり！🎨✨\nまた あそびにきてね！', zh: '鉴赏完毕！🎨✨\n下次再来玩哦！', en: 'Tour Complete! 🎨✨\nCome visit again!' },
 
@@ -517,9 +517,11 @@ const characters = {
     outline: '#233728',
     hasStripes: false,
     hasStar: false,
-    hasGlasses: true,
-    glassesColor: '#28371f',  // dark green frame
-    glassesLens: '#d2e1c8',   // light green lens
+    hasGlasses: false,
+    hasLashes: true,          // eyelashes/eyeliner!
+    lashColor: '#233728',     // dark green-black lashes
+    glassesColor: '#28371f',
+    glassesLens: '#d2e1c8',
     isVisitor: true,
   }
 };
@@ -1100,6 +1102,16 @@ function drawCharIcon() {
     x.fillRect(4, 5, 2, 2); x.fillRect(10, 5, 2, 2);
   }
 
+  // Eyelashes / eyeliner
+  if (ch.hasLashes) {
+    x.fillStyle = ch.lashColor;
+    // Top lash lines above eyes (eyeliner effect)
+    x.fillRect(4, 4, 2, 1); x.fillRect(10, 4, 2, 1);
+    // Flicked lash tips (outer corners, going up-outward)
+    x.fillRect(3, 4, 1, 1); x.fillRect(12, 4, 1, 1);
+    x.fillRect(3, 3, 1, 1); x.fillRect(12, 3, 1, 1);
+  }
+
   // Body (small, below head)
   x.fillStyle = bodyColor;
   for (let px = 3; px <= 12; px++) {
@@ -1635,6 +1647,18 @@ function drawPlayer() {
       ctx.fillRect(hx + hw - 4*S, hy + 4*S, 2*S, 1*S);
     }
 
+    // Eyelashes (sitting — eyes are closed, so lashes on the closed eye line)
+    if (ch.hasLashes) {
+      ctx.fillStyle = ch.lashColor;
+      const eyeL = hx + 2*S, eyeR = hx + hw - 4*S;
+      // Lash lines on top of closed eyes
+      ctx.fillRect(eyeL - 1*S, hy + 3*S, 1*S, 1*S);
+      ctx.fillRect(eyeR + 2*S, hy + 3*S, 1*S, 1*S);
+      // Flick upward at outer corners
+      ctx.fillRect(eyeL - 1*S, hy + 2*S, 1*S, 1*S);
+      ctx.fillRect(eyeR + 2*S, hy + 2*S, 1*S, 1*S);
+    }
+
     return; // skip normal drawing
   }
 
@@ -1791,6 +1815,34 @@ function drawPlayer() {
     ctx.fillStyle = ch.glassesLens;
     ctx.fillRect(gl1X + 1*S, hy + 3*S, 2*S, 2*S);
     ctx.fillRect(gl2X + 1*S, hy + 3*S, 2*S, 2*S);
+  }
+
+  // Eyelashes (walking)
+  if (ch.hasLashes) {
+    ctx.fillStyle = ch.lashColor;
+    if (!player.isBlinking) {
+      // Open eyes — lash lines above each eye + flick at outer corner
+      const eyeL = f === 1 ? hx + 2*S : hx + hw - 4*S;
+      const eyeR = f === 1 ? hx + 6*S : hx + hw - 8*S;
+      // Top lash line
+      ctx.fillRect(eyeL, hy + 2*S, 2*S, 1*S);
+      ctx.fillRect(eyeR, hy + 2*S, 2*S, 1*S);
+      // Flicked tips (outer corners go up)
+      const outerL = f === 1 ? eyeL - 1*S : eyeL + 2*S;
+      const outerR = f === 1 ? eyeR + 2*S : eyeR - 1*S;
+      ctx.fillRect(outerL, hy + 2*S, 1*S, 1*S);
+      ctx.fillRect(outerL, hy + 1*S, 1*S, 1*S);
+      ctx.fillRect(outerR, hy + 2*S, 1*S, 1*S);
+      ctx.fillRect(outerR, hy + 1*S, 1*S, 1*S);
+    } else {
+      // Blinking — small lash flicks at outer corners of closed eyes
+      const eyeL = f === 1 ? hx + 2*S : hx + hw - 4*S;
+      const eyeR = f === 1 ? hx + 6*S : hx + hw - 8*S;
+      const outerL = f === 1 ? eyeL - 1*S : eyeL + 2*S;
+      const outerR = f === 1 ? eyeR + 2*S : eyeR - 1*S;
+      ctx.fillRect(outerL, hy + 3*S, 1*S, 1*S);
+      ctx.fillRect(outerR, hy + 3*S, 1*S, 1*S);
+    }
   }
 }
 
@@ -2313,6 +2365,17 @@ function drawPreviewCat(canvasId, charDef, size) {
     x.fillStyle = charDef.glassesLens;
     x.fillRect(ox + 4*s, oy + 5*s, 2*s, 2*s);
     x.fillRect(ox + 10*s, oy + 5*s, 2*s, 2*s);
+  }
+
+  // Eyelashes (preview)
+  if (charDef.hasLashes) {
+    x.fillStyle = charDef.lashColor;
+    // Top lash lines above eyes
+    x.fillRect(ox + 4*s, oy + 4*s, 2*s, s);
+    x.fillRect(ox + 10*s, oy + 4*s, 2*s, s);
+    // Flicked tips at outer corners
+    px(3, 4); px(3, 3);
+    px(12, 4); px(12, 3);
   }
 
   // Body
