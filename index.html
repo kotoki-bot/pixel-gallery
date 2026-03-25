@@ -333,6 +333,7 @@ const i18n = {
   visitorTag:      { ja: '🎟️ 訪客', zh: '🎟️ 访客', en: '🎟️ Visitor' },
   mossDesc:        { ja: '初めての訪客！好奇心旺盛なめがねねこ', zh: '第一位访客！好奇心旺盛的眼镜猫', en: 'First visitor! A curious cat with glasses' },
   welcomeVisitor:  { ja: 'ようこそ、{name}さん！', zh: '欢迎，{name}！', en: 'Welcome, {name}!' },
+  tourComplete:    { ja: 'かんしょう おわり！🎨✨\nまた あそびにきてね！', zh: '鉴赏完毕！🎨✨\n下次再来玩哦！', en: 'Tour Complete! 🎨✨\nCome visit again!' },
 
   // Artworks
   art: {
@@ -504,21 +505,21 @@ const characters = {
   moss: {
     name: 'Moss',
     name_ja: 'モス',
-    name_zh: 'Moss',
+    name_zh: '苔猫',
     name_en: 'Moss',
     emoji: '🌿',
-    body: '#5a8a5a',
-    bodyLight: '#7aaa7a',
-    bodyDark: '#3a6a3a',
-    belly: '#e8f0e0',
-    pink: '#d4a0a8',
-    eye: '#1a2e1a',
-    outline: '#2a3a2a',
+    body: '#73a069',         // mossy green
+    bodyLight: '#9bc38c',
+    bodyDark: '#506e48',
+    belly: '#ebf2e1',        // pale cream-green
+    pink: '#d7969f',
+    eye: '#1e231a',
+    outline: '#233728',
     hasStripes: false,
     hasStar: false,
     hasGlasses: true,
-    glassesColor: '#3a3a4a',
-    glassesLens: 'rgba(180,210,240,0.4)',
+    glassesColor: '#28371f',  // dark green frame
+    glassesLens: '#d2e1c8',   // light green lens
     isVisitor: true,
   }
 };
@@ -773,8 +774,21 @@ function startVisitor(charId) {
   currentChar = charId;
   titleScreen.style.display = 'none';
   visitorScreen.style.display = 'none';
-  // Hide switch button for visitors
+  // Hide switch button and d-pad for visitors (auto-walk!)
   document.getElementById('btn-switch').style.display = 'none';
+  document.getElementById('dpad').style.display = 'none';
+  document.getElementById('btn-interact')?.style.setProperty('display', 'none');
+  // Initialize tour state
+  tourIndex = -1;
+  tourState = 'walk';
+  tourTimer = 0;
+  tourBubbleOpacity = 0;
+  tourBubbleText = '';
+  lastPawX = player.x;
+  // Start player at the left side
+  player.x = 32;
+  player.y = FLOOR_Y * TILE - player.h + 10;
+  player.facing = 1;
   updateCharUI();
   requestAnimationFrame(gameLoop);
 }
@@ -1969,6 +1983,220 @@ function update() {
 }
 
 // ============================================================
+// ============================================================
+// VISITOR AUTO-WALK LOGIC
+// ============================================================
+function updateVisitorMode() {
+  // Position player on the floor (near the wall, where artworks are visible)
+  const floorTopY = FLOOR_Y * TILE;
+  if (player.y === 0 || player.y < floorTopY - player.h) {
+    player.y = floorTopY - player.h + 10; // slightly into floor area
+  }
+
+  if (tourState === 'walk') {
+    // Determine target artwork
+    const targetIdx = tourIndex + 1;
+    if (targetIdx >= artworks.length) {
+      // Tour complete!
+      tourState = 'done';
+      tourBubbleText = t('tourComplete');
+      tourBubbleOpacity = 1;
+      tourTimer = 0;
+      player.vx = 0;
+      return;
+    }
+
+    const targetArt = artworks[targetIdx];
+    const artAspect = (targetArt.pw || 64) / (targetArt.ph || 32);
+    const artFrameW = Math.round(80 * artAspect);
+    const targetX = targetArt.wallX * TILE + artFrameW / 2 - player.w / 2;
+
+    // Walk towards target
+    const dx = targetX - player.x;
+    if (Math.abs(dx) > 4) {
+      player.vx = Math.sign(dx) * TOUR_WALK_SPEED;
+      player.facing = dx > 0 ? 1 : -1;
+      player.x += player.vx;
+
+      // Spawn paw prints
+      if (Math.abs(player.x - lastPawX) >= PAW_INTERVAL) {
+        pawPrints.push({
+          x: player.x + player.w / 2,
+          y: player.y + player.h - 4,
+          age: 0,
+          maxAge: PAW_MAX_AGE
+        });
+        lastPawX = player.x;
+      }
+    } else {
+      // Arrived at artwork
+      player.vx = 0;
+      tourIndex = targetIdx;
+      tourState = 'viewing';
+      tourTimer = 0;
+      tourBubbleOpacity = 0;
+      const artDesc = tArt(targetArt.id, 'desc');
+      tourBubbleText = artDesc;
+      // Decide if this artwork gets a heart
+      tourShowHeart = Math.random() < 0.3;
+      tourHeartSpawned = false;
+    }
+  } else if (tourState === 'viewing') {
+    tourTimer++;
+
+    // Fade in bubble
+    if (tourBubbleOpacity < 1) {
+      tourBubbleOpacity = Math.min(1, tourBubbleOpacity + 0.04);
+    }
+
+    // Spawn heart reaction partway through viewing
+    if (tourShowHeart && !tourHeartSpawned && tourTimer > TOUR_VIEW_TIME * 0.5) {
+      spawnFloatingReaction();
+      tourHeartSpawned = true;
+    }
+
+    // Done viewing
+    if (tourTimer >= TOUR_VIEW_TIME) {
+      // Fade out bubble
+      tourBubbleOpacity = Math.max(0, tourBubbleOpacity - 0.08);
+      if (tourBubbleOpacity <= 0) {
+        tourState = 'walk';
+      }
+    }
+  } else if (tourState === 'done') {
+    tourTimer++;
+    // Show "tour complete" bubble for a bit, then fade
+    if (tourTimer > 180) {
+      tourBubbleOpacity = Math.max(0, tourBubbleOpacity - 0.02);
+    }
+  }
+
+  // Update paw prints
+  for (let i = pawPrints.length - 1; i >= 0; i--) {
+    pawPrints[i].age++;
+    if (pawPrints[i].age >= pawPrints[i].maxAge) {
+      pawPrints.splice(i, 1);
+    }
+  }
+
+  // Camera follow
+  const targetCam = player.x - canvas.width / 2 + player.w / 2;
+  cameraX += (targetCam - cameraX) * 0.08; // slightly smoother for tour
+  if (cameraX < 0) cameraX = 0;
+  if (cameraX > GALLERY_W - canvas.width) cameraX = GALLERY_W - canvas.width;
+  if (GALLERY_W <= canvas.width) cameraX = 0;
+}
+
+// ============================================================
+// DRAW SPEECH BUBBLE (visitor mode)
+// ============================================================
+function drawSpeechBubble() {
+  if (!isVisitorMode || tourBubbleOpacity <= 0 || !tourBubbleText) return;
+
+  ctx.save();
+  ctx.globalAlpha = tourBubbleOpacity;
+
+  const px = Math.round(player.x - cameraX + player.w / 2);
+  const bubbleMaxW = 200;
+  const lineH = 14;
+  const padX = 10;
+  const padY = 8;
+
+  // Word wrap
+  ctx.font = '10px monospace';
+  const words = tourBubbleText.split('');
+  const lines = [];
+  let currentLine = '';
+
+  for (const char of tourBubbleText) {
+    if (char === '\n') {
+      lines.push(currentLine);
+      currentLine = '';
+      continue;
+    }
+    const testLine = currentLine + char;
+    const metrics = ctx.measureText(testLine);
+    if (metrics.width > bubbleMaxW - padX * 2) {
+      lines.push(currentLine);
+      currentLine = char;
+    } else {
+      currentLine = testLine;
+    }
+  }
+  if (currentLine) lines.push(currentLine);
+
+  const bubbleW = Math.min(bubbleMaxW, Math.max(...lines.map(l => ctx.measureText(l).width)) + padX * 2 + 4);
+  const bubbleH = lines.length * lineH + padY * 2;
+  const bubbleX = Math.max(4, Math.min(canvas.width - bubbleW - 4, px - bubbleW / 2));
+  const bubbleY = Math.round(player.y - bubbleH - 24);
+
+  // Background
+  ctx.fillStyle = 'rgba(0,0,0,0.85)';
+  ctx.fillRect(bubbleX, bubbleY, bubbleW, bubbleH);
+
+  // Gold border
+  ctx.strokeStyle = '#c9a96e';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(bubbleX, bubbleY, bubbleW, bubbleH);
+
+  // Tail (triangle pointing down)
+  ctx.fillStyle = 'rgba(0,0,0,0.85)';
+  ctx.beginPath();
+  ctx.moveTo(px - 6, bubbleY + bubbleH);
+  ctx.lineTo(px, bubbleY + bubbleH + 8);
+  ctx.lineTo(px + 6, bubbleY + bubbleH);
+  ctx.fill();
+  // Tail border
+  ctx.strokeStyle = '#c9a96e';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(px - 6, bubbleY + bubbleH);
+  ctx.lineTo(px, bubbleY + bubbleH + 8);
+  ctx.lineTo(px + 6, bubbleY + bubbleH);
+  ctx.stroke();
+  // Cover the tail-body intersection
+  ctx.fillStyle = 'rgba(0,0,0,0.85)';
+  ctx.fillRect(px - 7, bubbleY + bubbleH - 2, 14, 3);
+
+  // Text
+  ctx.fillStyle = '#f5e6d0';
+  ctx.font = '10px monospace';
+  ctx.textAlign = 'left';
+  for (let i = 0; i < lines.length; i++) {
+    ctx.fillText(lines[i], bubbleX + padX, bubbleY + padY + (i + 1) * lineH - 2);
+  }
+
+  ctx.restore();
+}
+
+// ============================================================
+// DRAW PAW PRINTS (visitor mode)
+// ============================================================
+function drawPawPrints() {
+  if (pawPrints.length === 0) return;
+
+  for (const paw of pawPrints) {
+    const opacity = 1 - (paw.age / paw.maxAge);
+    if (opacity <= 0) continue;
+
+    ctx.save();
+    ctx.globalAlpha = opacity * 0.4;
+    const sx = Math.round(paw.x - cameraX);
+    const sy = Math.round(paw.y);
+
+    // Tiny paw print — 3 toe beans + 1 pad
+    ctx.fillStyle = '#d7969f'; // pink, matching Moss's pink
+    // Pad (main)
+    ctx.fillRect(sx, sy + 2, 3, 2);
+    // Toe beans
+    ctx.fillRect(sx - 1, sy, 2, 2);
+    ctx.fillRect(sx + 1, sy - 1, 2, 1);
+    ctx.fillRect(sx + 3, sy, 2, 2);
+
+    ctx.restore();
+  }
+}
+
 // FLOATING REACTIONS (visitor mode)
 // ============================================================
 function spawnFloatingReaction() {
@@ -2155,6 +2383,12 @@ function render() {
   for (const obj of floorObjects) {
     if (obj.type === 'bench') drawBench(obj.tx);
     else if (obj.type === 'player') drawPlayer();
+  }
+
+  // Visitor mode overlays (drawn on top of everything)
+  if (isVisitorMode) {
+    drawPawPrints();
+    drawSpeechBubble();
   }
 }
 
