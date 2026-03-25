@@ -332,6 +332,7 @@ const i18n = {
   backToTitle:     { ja: '← もどる', zh: '← 返回', en: '← Back' },
   visitorTag:      { ja: '🎟️ 訪客', zh: '🎟️ 访客', en: '🎟️ Visitor' },
   mossDesc:        { ja: '初めての訪客！好奇心旺盛なめがねねこ', zh: '第一位访客！好奇心旺盛的眼镜猫', en: 'First visitor! A curious cat with glasses' },
+  welcomeVisitor:  { ja: 'ようこそ、{name}さん！', zh: '欢迎，{name}！', en: 'Welcome, {name}!' },
 
   // Artworks
   art: {
@@ -525,6 +526,25 @@ const characters = {
 let currentChar = 'curry';
 let isVisitorMode = false;
 let reactionTimer = 0;
+
+// ============================================================
+// VISITOR AUTO-WALK STATE
+// ============================================================
+let tourIndex = -1;          // which artwork we're heading to (-1 = walking to first)
+let tourState = 'walk';      // 'walk' | 'viewing' | 'done'
+let tourTimer = 0;           // frames spent viewing current artwork
+const TOUR_VIEW_TIME = 240;  // 4 seconds at 60fps
+const TOUR_WALK_SPEED = WALK_SPEED * 0.6;
+let tourBubbleOpacity = 0;   // speech bubble fade
+let tourBubbleText = '';     // current bubble text
+let tourShowHeart = false;   // show heart reaction this artwork?
+let tourHeartSpawned = false; // already spawned heart for current artwork?
+
+// Paw prints
+const pawPrints = [];        // { x, y, age, maxAge }
+let lastPawX = 0;            // last paw print X position
+const PAW_INTERVAL = 40;     // spawn every 40px
+const PAW_MAX_AGE = 180;     // 3 seconds at 60fps
 
 function switchCharacter() {
   if (isVisitorMode) return; // visitors can't switch
@@ -771,8 +791,13 @@ function startGame() {
   // Legacy — Enter key starts museum mode
   startMuseum();
 }
-titleScreen.addEventListener('click', startGame);
-titleScreen.addEventListener('touchstart', (e) => { e.preventDefault(); startGame(); });
+titleScreen.addEventListener('click', (e) => {
+  // Only start if clicking outside the doors (for accessibility)
+  if (e.target === titleScreen) startGame();
+});
+titleScreen.addEventListener('touchstart', (e) => {
+  if (e.target === titleScreen) { e.preventDefault(); startGame(); }
+});
 document.addEventListener('keydown', (e) => {
   if (!gameStarted && (e.key === 'Enter' || e.key === ' ')) startGame();
 });
@@ -986,12 +1011,11 @@ function drawCharIcon() {
   x.imageSmoothingEnabled = false;
   x.clearRect(0, 0, 16, 16);
 
-  const isCurry = currentChar === 'curry';
-  const bodyColor = isCurry ? '#eaa74b' : '#829aaf';
-  const bellyColor = isCurry ? '#fff8eb' : '#f5f0eb';
-  const eyeColor = isCurry ? '#281e19' : '#282430';
-  const pinkColor = isCurry ? '#f08c96' : '#dc8d96';
-  const starColor = '#ffdc64';
+  const ch = characters[currentChar];
+  const bodyColor = ch.body;
+  const bellyColor = ch.belly;
+  const eyeColor = ch.eye;
+  const pinkColor = ch.pink;
 
   // Cat face (centered, bigger for icon)
   x.fillStyle = bodyColor;
@@ -1032,11 +1056,34 @@ function drawCharIcon() {
   x.fillRect(7, 8, 1, 1); x.fillRect(8, 8, 1, 1);
 
   // Star on forehead (ほしねこ only)
-  if (!isCurry) {
-    x.fillStyle = starColor;
+  if (ch.hasStar) {
+    x.fillStyle = ch.starColor;
     x.fillRect(7, 3, 2, 2);
     x.fillRect(6, 4, 1, 1); x.fillRect(9, 4, 1, 1);
     x.fillRect(7, 2, 1, 1); x.fillRect(8, 5, 1, 1);
+  }
+
+  // Stripes (curry cat)
+  if (ch.hasStripes) {
+    x.fillStyle = ch.bodyDark;
+    x.fillRect(4, 3, 2, 1); x.fillRect(10, 3, 2, 1);
+    x.fillRect(3, 4, 1, 1); x.fillRect(12, 4, 1, 1);
+  }
+
+  // Glasses
+  if (ch.hasGlasses) {
+    x.fillStyle = ch.glassesColor;
+    // Left lens
+    x.fillRect(3, 4, 4, 1); x.fillRect(3, 7, 4, 1);
+    x.fillRect(3, 4, 1, 4); x.fillRect(6, 4, 1, 4);
+    // Right lens
+    x.fillRect(9, 4, 4, 1); x.fillRect(9, 7, 4, 1);
+    x.fillRect(9, 4, 1, 4); x.fillRect(12, 4, 1, 4);
+    // Bridge
+    x.fillRect(6, 5, 3, 1);
+    // Lens tint
+    x.fillStyle = ch.glassesLens;
+    x.fillRect(4, 5, 2, 2); x.fillRect(10, 5, 2, 2);
   }
 
   // Body (small, below head)
@@ -1053,16 +1100,9 @@ function drawCharIcon() {
   x.fillStyle = bodyColor;
   x.fillRect(3, 12, 2, 1); x.fillRect(5, 12, 1, 1);
   x.fillRect(10, 12, 1, 1); x.fillRect(11, 12, 2, 1);
-
-  // Stripes (curry only)
-  if (isCurry) {
-    x.fillStyle = '#d48a30';
-    x.fillRect(4, 3, 2, 1); x.fillRect(10, 3, 2, 1);
-    x.fillRect(3, 4, 1, 1); x.fillRect(12, 4, 1, 1);
-  }
 }
 
-window.addEventListener('DOMContentLoaded', () => { drawPixelIcons(); applyLang(); });
+window.addEventListener('DOMContentLoaded', () => { drawPixelIcons(); applyLang(); drawAllPreviews(); });
 
 // Track which icon is currently shown on the interact button
 let currentInteractIcon = 'eye'; // 'eye' | 'sit' | 'stand'
@@ -1438,18 +1478,27 @@ function drawBench(tx) {
 function drawWelcomeSign() {
   const signX = 1 * TILE - cameraX;
   if (signX > -120 && signX < canvas.width + 120) {
-    drawRectAbs(Math.round(signX), 6 * TILE + 8, 88, 48, '#2a2235');
-    drawRectAbs(Math.round(signX) - 2, 6 * TILE + 6, 92, 2, C.frameGold);
-    drawRectAbs(Math.round(signX) - 2, 6 * TILE + 54, 92, 2, C.frameGold);
+    // Wider sign for visitor welcome
+    const signW = isVisitorMode ? 120 : 88;
+    drawRectAbs(Math.round(signX), 6 * TILE + 8, signW, 48, '#2a2235');
+    drawRectAbs(Math.round(signX) - 2, 6 * TILE + 6, signW + 4, 2, C.frameGold);
+    drawRectAbs(Math.round(signX) - 2, 6 * TILE + 54, signW + 4, 2, C.frameGold);
     drawRectAbs(Math.round(signX) - 2, 6 * TILE + 6, 2, 50, C.frameGold);
-    drawRectAbs(Math.round(signX) + 88, 6 * TILE + 6, 2, 50, C.frameGold);
+    drawRectAbs(Math.round(signX) + signW, 6 * TILE + 6, 2, 50, C.frameGold);
     ctx.fillStyle = '#f5e6d0';
     ctx.font = 'bold 13px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText(t('welcome'), Math.round(signX) + 44, 6 * TILE + 28);
+    if (isVisitorMode) {
+      const ch = characters[currentChar];
+      const name = currentLang === 'ja' ? ch.name_ja : (currentLang === 'zh' ? ch.name_zh : ch.name_en);
+      const welcomeText = t('welcomeVisitor') || 'Welcome!';
+      ctx.fillText(welcomeText.replace('{name}', name), Math.round(signX) + signW/2, 6 * TILE + 28);
+    } else {
+      ctx.fillText(t('welcome'), Math.round(signX) + signW/2, 6 * TILE + 28);
+    }
     ctx.font = '10px monospace';
     ctx.fillStyle = '#c9a96e';
-    ctx.fillText(t('galleryName'), Math.round(signX) + 44, 6 * TILE + 44);
+    ctx.fillText(t('galleryName'), Math.round(signX) + signW/2, 6 * TILE + 44);
     ctx.textAlign = 'left';
   }
 }
@@ -1550,6 +1599,27 @@ function drawPlayer() {
     ctx.fillStyle = 'rgba(240,140,150,0.5)';
     ctx.fillRect(hx + 1*S, hy + 5*S, 2*S, 1*S);
     ctx.fillRect(hx + hw - 3*S, hy + 5*S, 2*S, 1*S);
+
+    // Glasses (sitting)
+    if (ch.hasGlasses) {
+      ctx.fillStyle = ch.glassesColor;
+      // Left lens frame
+      ctx.fillRect(hx + 1*S, hy + 3*S, 4*S, 1*S);
+      ctx.fillRect(hx + 1*S, hy + 5*S, 4*S, 1*S);
+      ctx.fillRect(hx + 1*S, hy + 3*S, 1*S, 3*S);
+      ctx.fillRect(hx + 4*S, hy + 3*S, 1*S, 3*S);
+      // Right lens frame
+      ctx.fillRect(hx + hw - 5*S, hy + 3*S, 4*S, 1*S);
+      ctx.fillRect(hx + hw - 5*S, hy + 5*S, 4*S, 1*S);
+      ctx.fillRect(hx + hw - 5*S, hy + 3*S, 1*S, 3*S);
+      ctx.fillRect(hx + hw - 2*S, hy + 3*S, 1*S, 3*S);
+      // Bridge
+      ctx.fillRect(hx + 4*S, hy + 4*S, hw - 9*S, 1*S);
+      // Lens tint
+      ctx.fillStyle = ch.glassesLens;
+      ctx.fillRect(hx + 2*S, hy + 4*S, 2*S, 1*S);
+      ctx.fillRect(hx + hw - 4*S, hy + 4*S, 2*S, 1*S);
+    }
 
     return; // skip normal drawing
   }
@@ -1677,6 +1747,37 @@ function drawPlayer() {
   ctx.fillStyle = 'rgba(240,140,150,0.5)';
   ctx.fillRect(hx + 1*S, hy + 5*S, 2*S, 1*S);
   ctx.fillRect(hx + hw - 3*S, hy + 5*S, 2*S, 1*S);
+
+  // Glasses (walking)
+  if (ch.hasGlasses) {
+    ctx.fillStyle = ch.glassesColor;
+    const glF = f; // facing direction
+    // Left lens frame (relative to face)
+    const gl1X = hx + 1*S;
+    const gl2X = hx + hw - 5*S;
+    // Left lens
+    ctx.fillRect(gl1X, hy + 2*S, 4*S, 1*S);
+    ctx.fillRect(gl1X, hy + 5*S, 4*S, 1*S);
+    ctx.fillRect(gl1X, hy + 2*S, 1*S, 4*S);
+    ctx.fillRect(gl1X + 3*S, hy + 2*S, 1*S, 4*S);
+    // Right lens
+    ctx.fillRect(gl2X, hy + 2*S, 4*S, 1*S);
+    ctx.fillRect(gl2X, hy + 5*S, 4*S, 1*S);
+    ctx.fillRect(gl2X, hy + 2*S, 1*S, 4*S);
+    ctx.fillRect(gl2X + 3*S, hy + 2*S, 1*S, 4*S);
+    // Bridge
+    ctx.fillRect(gl1X + 3*S, hy + 3*S, gl2X - gl1X - 2*S, 1*S);
+    // Ear hooks (side temples)
+    if (glF === 1) {
+      ctx.fillRect(gl2X + 4*S, hy + 3*S, 1*S, 1*S);
+    } else {
+      ctx.fillRect(gl1X - 1*S, hy + 3*S, 1*S, 1*S);
+    }
+    // Lens tint
+    ctx.fillStyle = ch.glassesLens;
+    ctx.fillRect(gl1X + 1*S, hy + 3*S, 2*S, 2*S);
+    ctx.fillRect(gl2X + 1*S, hy + 3*S, 2*S, 2*S);
+  }
 }
 
 // ============================================================
@@ -1685,6 +1786,14 @@ function drawPlayer() {
 function update() {
   const modalOpen = document.getElementById('modal-bg').style.display === 'flex';
   if (modalOpen) return;
+
+  // ============================================================
+  // VISITOR AUTO-WALK MODE
+  // ============================================================
+  if (isVisitorMode) {
+    updateVisitorMode();
+    return;
+  }
 
   // If sitting, freeze player movement — only allow standing up
   if (isSitting) {
@@ -1741,8 +1850,9 @@ function update() {
     moveY *= 0.707;
   }
 
-  player.vx = moveX * WALK_SPEED;
-  player.vy = moveY * WALK_SPEED;
+  const speed = isVisitorMode ? WALK_SPEED * 0.8 : WALK_SPEED;
+  player.vx = moveX * speed;
+  player.vy = moveY * speed;
   if (moveX !== 0) player.facing = moveX > 0 ? 1 : -1;
 
   // Tentative new position
@@ -1845,6 +1955,147 @@ function update() {
     prompt.style.display = 'none';
     if (btnInteract) btnInteract.style.display = 'none';
   }
+
+  // Floating reactions for visitors near artwork
+  if (isVisitorMode && nearArtwork) {
+    reactionTimer++;
+    if (reactionTimer >= 180) { // ~3 seconds at 60fps
+      reactionTimer = 0;
+      spawnFloatingReaction();
+    }
+  } else {
+    reactionTimer = 0;
+  }
+}
+
+// ============================================================
+// FLOATING REACTIONS (visitor mode)
+// ============================================================
+function spawnFloatingReaction() {
+  const emojis = ['❤️', '✨', '🌟', '💚', '😍', '🎨'];
+  const emoji = emojis[Math.floor(Math.random() * emojis.length)];
+  const el = document.createElement('div');
+  el.className = 'float-reaction';
+  el.textContent = emoji;
+  // Position above the player
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = rect.width / canvas.width;
+  const scaleY = rect.height / canvas.height;
+  const px = (player.x - cameraX + player.w / 2) * scaleX + rect.left;
+  const py = (player.y - 20) * scaleY + rect.top;
+  el.style.left = (px + (Math.random() - 0.5) * 40) + 'px';
+  el.style.top = py + 'px';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2000);
+}
+
+// ============================================================
+// WELCOME SCREEN PREVIEW CATS
+// ============================================================
+function drawPreviewCat(canvasId, charDef, size) {
+  const c = document.getElementById(canvasId);
+  if (!c) return;
+  const x = c.getContext('2d');
+  x.imageSmoothingEnabled = false;
+  x.clearRect(0, 0, c.width, c.height);
+  const s = size || 2; // pixel scale
+  const ox = (c.width - 14*s) / 2;
+  const oy = (c.height - 14*s) / 2;
+
+  // Ears
+  x.fillStyle = charDef.body;
+  x.fillRect(ox, oy, 3*s, 3*s);
+  x.fillRect(ox + 11*s, oy, 3*s, 3*s);
+  x.fillStyle = charDef.pink;
+  x.fillRect(ox + 1*s, oy + 1*s, 1*s, 1*s);
+  x.fillRect(ox + 12*s, oy + 1*s, 1*s, 1*s);
+
+  // Head
+  x.fillStyle = charDef.body;
+  for (let py = 2; py <= 9; py++)
+    for (let px = 1; px <= 12; px++)
+      x.fillRect(ox + px*s, oy + py*s, s, s);
+
+  // Muzzle
+  x.fillStyle = charDef.belly;
+  for (let py = 6; py <= 9; py++)
+    for (let px = 4; px <= 9; px++)
+      x.fillRect(ox + px*s, oy + py*s, s, s);
+
+  // Eyes
+  x.fillStyle = charDef.eye;
+  x.fillRect(ox + 3*s, oy + 5*s, 2*s, 2*s);
+  x.fillRect(ox + 9*s, oy + 5*s, 2*s, 2*s);
+  x.fillStyle = '#fff';
+  x.fillRect(ox + 4*s, oy + 5*s, 1*s, 1*s);
+  x.fillRect(ox + 10*s, oy + 5*s, 1*s, 1*s);
+
+  // Nose
+  x.fillStyle = charDef.pink;
+  x.fillRect(ox + 6*s, oy + 7*s, 2*s, 1*s);
+
+  // Cheeks
+  x.fillStyle = 'rgba(240,140,150,0.5)';
+  x.fillRect(ox + 2*s, oy + 7*s, 2*s, 1*s);
+  x.fillRect(ox + 10*s, oy + 7*s, 2*s, 1*s);
+
+  // Star (ほしねこ)
+  if (charDef.hasStar) {
+    x.fillStyle = charDef.starColor;
+    x.fillRect(ox + 6*s, oy + 3*s, 2*s, 2*s);
+    x.fillRect(ox + 5*s, oy + 4*s, 1*s, 1*s);
+    x.fillRect(ox + 8*s, oy + 4*s, 1*s, 1*s);
+  }
+
+  // Stripes (curry)
+  if (charDef.hasStripes) {
+    x.fillStyle = charDef.bodyDark;
+    x.fillRect(ox + 3*s, oy + 3*s, 2*s, 1*s);
+    x.fillRect(ox + 9*s, oy + 3*s, 2*s, 1*s);
+  }
+
+  // Glasses
+  if (charDef.hasGlasses) {
+    x.fillStyle = charDef.glassesColor;
+    // Left lens
+    x.fillRect(ox + 2*s, oy + 4*s, 4*s, 1*s);
+    x.fillRect(ox + 2*s, oy + 7*s, 4*s, 1*s);
+    x.fillRect(ox + 2*s, oy + 4*s, 1*s, 4*s);
+    x.fillRect(ox + 5*s, oy + 4*s, 1*s, 4*s);
+    // Right lens
+    x.fillRect(ox + 8*s, oy + 4*s, 4*s, 1*s);
+    x.fillRect(ox + 8*s, oy + 7*s, 4*s, 1*s);
+    x.fillRect(ox + 8*s, oy + 4*s, 1*s, 4*s);
+    x.fillRect(ox + 11*s, oy + 4*s, 1*s, 4*s);
+    // Bridge
+    x.fillRect(ox + 5*s, oy + 5*s, 3*s, 1*s);
+    // Lens tint
+    x.fillStyle = charDef.glassesLens;
+    x.fillRect(ox + 3*s, oy + 5*s, 2*s, 2*s);
+    x.fillRect(ox + 9*s, oy + 5*s, 2*s, 2*s);
+  }
+
+  // Body
+  x.fillStyle = charDef.body;
+  for (let px = 2; px <= 11; px++) {
+    x.fillRect(ox + px*s, oy + 10*s, s, s);
+    x.fillRect(ox + px*s, oy + 11*s, s, s);
+  }
+  x.fillStyle = charDef.belly;
+  for (let px = 4; px <= 9; px++)
+    x.fillRect(ox + px*s, oy + 11*s, s, s);
+
+  // Paws
+  x.fillStyle = charDef.body;
+  x.fillRect(ox + 2*s, oy + 12*s, 2*s, 1*s);
+  x.fillRect(ox + 10*s, oy + 12*s, 2*s, 1*s);
+}
+
+function drawAllPreviews() {
+  drawPreviewCat('preview-curry', characters.curry, 2);
+  drawPreviewCat('preview-hoshi', characters.hoshi, 2);
+  drawPreviewCat('preview-moss', characters.moss, 2);
+  drawPreviewCat('card-moss', characters.moss, 3);
 }
 
 // ============================================================
