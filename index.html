@@ -105,11 +105,97 @@ canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edge
   background: linear-gradient(180deg, #1a1520 0%, #2a2235 40%, #3a3050 100%);
   display: flex; flex-direction: column;
   align-items: center; justify-content: center; z-index: 200;
-  cursor: pointer;
 }
-#title-text { color: #f5e6d0; font-family: monospace; font-size: 28px; margin-bottom: 12px; letter-spacing: 6px; text-shadow: 2px 2px 0 #3d3050, 0 0 20px rgba(201,169,110,0.3); }
-#title-sub { color: #c9a96e; font-family: monospace; font-size: 12px; animation: blink 1.2s infinite; letter-spacing: 2px; }
+#title-text { color: #f5e6d0; font-family: monospace; font-size: 28px; margin-bottom: 24px; letter-spacing: 6px; text-shadow: 2px 2px 0 #3d3050, 0 0 20px rgba(201,169,110,0.3); }
+#title-sub { color: #c9a96e; font-family: monospace; font-size: 12px; animation: blink 1.2s infinite; letter-spacing: 2px; display: none; }
 @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+/* Welcome doors */
+#welcome-doors {
+  display: flex; gap: 32px; align-items: stretch; justify-content: center;
+  flex-wrap: wrap; padding: 0 16px;
+}
+.welcome-door {
+  width: 220px; padding: 24px 16px; text-align: center; cursor: pointer;
+  background: rgba(42,34,53,0.8); border: 3px solid #c9a96e; border-radius: 8px;
+  transition: all 0.2s ease; position: relative; overflow: hidden;
+}
+.welcome-door:hover, .welcome-door:active {
+  background: rgba(62,54,73,0.9); border-color: #e8cc8a;
+  transform: translateY(-2px); box-shadow: 0 4px 20px rgba(201,169,110,0.2);
+}
+.welcome-door-title {
+  color: #f5e6d0; font-family: monospace; font-size: 16px; margin-bottom: 8px;
+  letter-spacing: 2px;
+}
+.welcome-door-sub {
+  color: #a89070; font-family: monospace; font-size: 11px; margin-bottom: 16px;
+}
+.welcome-door-preview {
+  height: 64px; display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.welcome-door-preview canvas {
+  image-rendering: pixelated; image-rendering: crisp-edges;
+}
+
+/* Visitor selection screen */
+#visitor-screen {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: linear-gradient(180deg, #1a1520 0%, #2a2235 40%, #3a3050 100%);
+  display: none; flex-direction: column;
+  align-items: center; justify-content: center; z-index: 201;
+}
+#visitor-title {
+  color: #f5e6d0; font-family: monospace; font-size: 22px; margin-bottom: 24px;
+  letter-spacing: 4px; text-shadow: 2px 2px 0 #3d3050;
+}
+#visitor-cards {
+  display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; padding: 0 16px;
+  margin-bottom: 24px;
+}
+.visitor-card {
+  width: 180px; padding: 20px 16px; text-align: center; cursor: pointer;
+  background: rgba(42,34,53,0.8); border: 3px solid #5a8a5a; border-radius: 8px;
+  transition: all 0.2s ease;
+}
+.visitor-card:hover, .visitor-card:active {
+  background: rgba(62,54,73,0.9); border-color: #7aaa7a;
+  transform: translateY(-2px); box-shadow: 0 4px 20px rgba(90,138,90,0.3);
+}
+.visitor-card canvas {
+  image-rendering: pixelated; image-rendering: crisp-edges;
+  margin-bottom: 12px;
+}
+.visitor-card-name {
+  color: #e8f0e0; font-family: monospace; font-size: 16px; margin-bottom: 4px;
+}
+.visitor-card-desc {
+  color: #a0b098; font-family: monospace; font-size: 10px; line-height: 1.4;
+}
+#visitor-back {
+  color: #c9a96e; font-family: monospace; font-size: 13px; cursor: pointer;
+  padding: 8px 16px; border: 2px solid #c9a96e; border-radius: 4px;
+  background: rgba(0,0,0,0.3); transition: all 0.2s;
+}
+#visitor-back:hover { background: rgba(201,169,110,0.2); }
+
+/* Floating reactions */
+.float-reaction {
+  position: fixed; pointer-events: none; z-index: 50;
+  font-size: 20px; animation: floatUp 2s ease-out forwards;
+}
+@keyframes floatUp {
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  50% { opacity: 0.8; transform: translateY(-30px) scale(1.1); }
+  100% { opacity: 0; transform: translateY(-60px) scale(0.8); }
+}
+
+@media (max-width: 500px) {
+  #welcome-doors { gap: 16px; }
+  .welcome-door { width: 160px; padding: 16px 12px; }
+  .welcome-door-title { font-size: 13px; }
+  .visitor-card { width: 150px; padding: 16px 12px; }
+}
 
 /* Character indicator */
 #char-indicator {
@@ -130,7 +216,36 @@ canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edge
 
 <div id="title-screen">
   <div id="title-text">こなぬの美術館</div>
+  <div id="welcome-doors">
+    <div class="welcome-door" id="door-museum" onclick="startMuseum()" ontouchstart="event.preventDefault();startMuseum()">
+      <div class="welcome-door-title" id="door-museum-title">美術館に入る</div>
+      <div class="welcome-door-sub" id="door-museum-sub">いつもの美術館</div>
+      <div class="welcome-door-preview">
+        <canvas width="32" height="32" id="preview-curry"></canvas>
+        <canvas width="32" height="32" id="preview-hoshi"></canvas>
+      </div>
+    </div>
+    <div class="welcome-door" id="door-visitor" onclick="showVisitorScreen()" ontouchstart="event.preventDefault();showVisitorScreen()">
+      <div class="welcome-door-title" id="door-visitor-title">訪客モード</div>
+      <div class="welcome-door-sub" id="door-visitor-sub">ねこたちが遊びに来たよ</div>
+      <div class="welcome-door-preview">
+        <canvas width="32" height="32" id="preview-moss"></canvas>
+      </div>
+    </div>
+  </div>
   <div id="title-sub">- PRESS ENTER -</div>
+</div>
+
+<div id="visitor-screen">
+  <div id="visitor-title">遊びに来たねこ</div>
+  <div id="visitor-cards">
+    <div class="visitor-card" onclick="startVisitor('moss')" ontouchstart="event.preventDefault();startVisitor('moss')">
+      <canvas width="48" height="48" id="card-moss"></canvas>
+      <div class="visitor-card-name">🌿 Moss</div>
+      <div class="visitor-card-desc" id="moss-desc">初めての訪客！好奇心旺盛なめがねねこ</div>
+    </div>
+  </div>
+  <div id="visitor-back" onclick="hideVisitorScreen()" ontouchstart="event.preventDefault();hideVisitorScreen()">← もどる</div>
 </div>
 
 <div id="top-bar" style="
@@ -209,6 +324,14 @@ const i18n = {
   promptView:      { ja: '[E] かんしょう', zh: '[E] 鉴赏', en: '[E] View' },
   promptSit:       { ja: '[E] すわる', zh: '[E] 坐下', en: '[E] Sit' },
   promptStand:     { ja: '[E] たつ', zh: '[E] 站起', en: '[E] Stand' },
+  enterMuseum:     { ja: '美術館に入る', zh: '进入美术馆', en: 'Enter Museum' },
+  enterSub:        { ja: 'いつもの美術館', zh: '像往常一样', en: 'As always' },
+  visitorMode:     { ja: '訪客モード', zh: '访客模式', en: 'Visitor Mode' },
+  visitorSub:      { ja: 'ねこたちが遊びに来たよ', zh: '小猫们来参观啦', en: 'Cats come to visit' },
+  selectVisitor:   { ja: '遊びに来たねこ', zh: '来参观的小猫', en: 'Visiting Cats' },
+  backToTitle:     { ja: '← もどる', zh: '← 返回', en: '← Back' },
+  visitorTag:      { ja: '🎟️ 訪客', zh: '🎟️ 访客', en: '🎟️ Visitor' },
+  mossDesc:        { ja: '初めての訪客！好奇心旺盛なめがねねこ', zh: '第一位访客！好奇心旺盛的眼镜猫', en: 'First visitor! A curious cat with glasses' },
 
   // Artworks
   art: {
@@ -307,9 +430,20 @@ function applyLang() {
   // Back button
   document.getElementById('back-to-island').textContent = t('backIsland');
   document.getElementById('back-to-island').title = t('backIsland');
+  // Welcome doors
+  document.getElementById('door-museum-title').textContent = t('enterMuseum');
+  document.getElementById('door-museum-sub').textContent = t('enterSub');
+  document.getElementById('door-visitor-title').textContent = t('visitorMode');
+  document.getElementById('door-visitor-sub').textContent = t('visitorSub');
+  // Visitor screen
+  document.getElementById('visitor-title').textContent = t('selectVisitor');
+  document.getElementById('visitor-back').textContent = t('backToTitle');
+  document.getElementById('moss-desc').textContent = t('mossDesc');
   // Character indicator
   const ch = characters[currentChar];
-  document.getElementById('char-name').textContent = currentLang === 'ja' ? ch.name_ja : (currentLang === 'zh' ? ch.name_zh : ch.name_en);
+  const nameText = currentLang === 'ja' ? ch.name_ja : (currentLang === 'zh' ? ch.name_zh : ch.name_en);
+  const prefix = isVisitorMode ? t('visitorTag') + ' ' : '';
+  document.getElementById('char-name').textContent = prefix + nameText;
   // html lang attribute
   document.documentElement.lang = currentLang === 'zh' ? 'zh-CN' : currentLang;
   // Update open modal if visible
@@ -365,12 +499,35 @@ const characters = {
     hasStripes: false,
     hasStar: true,
     starColor: '#ffdc64',
+  },
+  moss: {
+    name: 'Moss',
+    name_ja: 'モス',
+    name_zh: 'Moss',
+    name_en: 'Moss',
+    emoji: '🌿',
+    body: '#5a8a5a',
+    bodyLight: '#7aaa7a',
+    bodyDark: '#3a6a3a',
+    belly: '#e8f0e0',
+    pink: '#d4a0a8',
+    eye: '#1a2e1a',
+    outline: '#2a3a2a',
+    hasStripes: false,
+    hasStar: false,
+    hasGlasses: true,
+    glassesColor: '#3a3a4a',
+    glassesLens: 'rgba(180,210,240,0.4)',
+    isVisitor: true,
   }
 };
 
 let currentChar = 'curry';
+let isVisitorMode = false;
+let reactionTimer = 0;
 
 function switchCharacter() {
+  if (isVisitorMode) return; // visitors can't switch
   currentChar = currentChar === 'curry' ? 'hoshi' : 'curry';
   const ch = characters[currentChar];
   document.getElementById('char-name').textContent = currentLang === 'ja' ? ch.name_ja : (currentLang === 'zh' ? ch.name_zh : ch.name_en);
@@ -561,14 +718,58 @@ function getBenchRect(tx) {
 }
 
 // ============================================================
-// TITLE SCREEN
+// TITLE SCREEN & VISITOR SELECTION
 // ============================================================
 const titleScreen = document.getElementById('title-screen');
-function startGame() {
+const visitorScreen = document.getElementById('visitor-screen');
+
+function startMuseum() {
   if (gameStarted) return;
   gameStarted = true;
+  isVisitorMode = false;
+  currentChar = 'curry';
   titleScreen.style.display = 'none';
+  visitorScreen.style.display = 'none';
+  document.getElementById('btn-switch').style.display = 'flex';
+  updateCharUI();
   requestAnimationFrame(gameLoop);
+}
+
+function showVisitorScreen() {
+  titleScreen.style.display = 'none';
+  visitorScreen.style.display = 'flex';
+  applyLang();
+}
+
+function hideVisitorScreen() {
+  visitorScreen.style.display = 'none';
+  titleScreen.style.display = 'flex';
+}
+
+function startVisitor(charId) {
+  if (gameStarted) return;
+  gameStarted = true;
+  isVisitorMode = true;
+  currentChar = charId;
+  titleScreen.style.display = 'none';
+  visitorScreen.style.display = 'none';
+  // Hide switch button for visitors
+  document.getElementById('btn-switch').style.display = 'none';
+  updateCharUI();
+  requestAnimationFrame(gameLoop);
+}
+
+function updateCharUI() {
+  const ch = characters[currentChar];
+  const nameText = currentLang === 'ja' ? ch.name_ja : (currentLang === 'zh' ? ch.name_zh : ch.name_en);
+  const prefix = isVisitorMode ? t('visitorTag') + ' ' : '';
+  document.getElementById('char-name').textContent = prefix + nameText;
+  drawCharIcon();
+}
+
+function startGame() {
+  // Legacy — Enter key starts museum mode
+  startMuseum();
 }
 titleScreen.addEventListener('click', startGame);
 titleScreen.addEventListener('touchstart', (e) => { e.preventDefault(); startGame(); });
