@@ -242,12 +242,12 @@ canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edge
   <div id="visitor-cards">
     <div class="visitor-card" onclick="startVisitor('moss')" ontouchstart="event.preventDefault();startVisitor('moss')">
       <canvas width="48" height="48" id="card-moss"></canvas>
-      <div class="visitor-card-name">🌿 Moss</div>
+      <div class="visitor-card-name" id="moss-card-name">🌿 Moss</div>
       <div class="visitor-card-desc" id="moss-desc">初めての訪客！好奇心旺盛なおしゃれねこ</div>
     </div>
     <div class="visitor-card" onclick="startVisitor('xx')" ontouchstart="event.preventDefault();startVisitor('xx')" style="border-color: #8a7aaa;">
       <canvas width="48" height="48" id="card-xx"></canvas>
-      <div class="visitor-card-name">👻 XXねこ</div>
+      <div class="visitor-card-name" id="xx-card-name">👻 XXねこ</div>
       <div class="visitor-card-desc" id="xx-desc">ふわふわ半透明のゆうれいねこ</div>
     </div>
   </div>
@@ -339,6 +339,8 @@ const i18n = {
   visitorTag:      { ja: '🎟️ 訪客', zh: '🎟️ 访客', en: '🎟️ Visitor' },
   mossDesc:        { ja: '初めての訪客！好奇心旺盛なおしゃれねこ', zh: '第一位访客！好奇心旺盛的时髦小猫', en: 'First visitor! A curious, stylish cat' },
   xxDesc:          { ja: 'ふわふわ半透明のゆうれいねこ', zh: '飘飘忽忽的半透明幽灵小猫', en: 'A floaty, semi-transparent ghost cat' },
+  mossCardName:    { ja: '🌿 モス', zh: '🌿 苔猫', en: '🌿 Moss' },
+  xxCardName:      { ja: '👻 XXねこ', zh: '👻 叉叉猫', en: '👻 XX Cat' },
   welcomeVisitor:  { ja: 'ようこそ、{name}さん！', zh: '欢迎，{name}！', en: 'Welcome, {name}!' },
   tourComplete:    { ja: 'かんしょう おわり！🎨✨\nまた あそびにきてね！', zh: '鉴赏完毕！🎨✨\n下次再来玩哦！', en: 'Tour Complete! 🎨✨\nCome visit again!' },
 
@@ -449,6 +451,8 @@ function applyLang() {
   document.getElementById('visitor-back').textContent = t('backToTitle');
   document.getElementById('moss-desc').textContent = t('mossDesc');
   document.getElementById('xx-desc').textContent = t('xxDesc');
+  document.getElementById('moss-card-name').textContent = t('mossCardName');
+  document.getElementById('xx-card-name').textContent = t('xxCardName');
   // Character indicator
   const ch = characters[currentChar];
   const nameText = currentLang === 'ja' ? ch.name_ja : (currentLang === 'zh' ? ch.name_zh : ch.name_en);
