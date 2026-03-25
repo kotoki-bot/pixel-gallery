@@ -1574,7 +1574,7 @@ function drawPlayer() {
   const px = Math.round(player.x - cameraX);
   let py = Math.round(player.y);
   const f = player.facing;
-  const S = ch.isGhost ? 3.5 : 3;  // ghost cat is slightly taller!
+  const S = 3;
 
   // Ghost transparency + floating bob
   if (ch.isGhost) {
