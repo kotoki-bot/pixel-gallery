@@ -2227,96 +2227,109 @@ function drawPreviewCat(canvasId, charDef, size) {
   x.imageSmoothingEnabled = false;
   x.clearRect(0, 0, c.width, c.height);
   const s = size || 2; // pixel scale
-  const ox = (c.width - 14*s) / 2;
-  const oy = (c.height - 14*s) / 2;
+  // Use same 16x16 layout as drawCharIcon, scaled by s
+  const ox = Math.floor((c.width - 16*s) / 2);
+  const oy = Math.floor((c.height - 14*s) / 2);
+
+  const bodyColor = charDef.body;
+  const bellyColor = charDef.belly;
+  const eyeColor = charDef.eye;
+  const pinkColor = charDef.pink;
+
+  function px(px, py) { x.fillRect(ox + px*s, oy + py*s, s, s); }
+  function fill(coords) { coords.forEach(([a,b]) => px(a,b)); }
 
   // Ears
-  x.fillStyle = charDef.body;
-  x.fillRect(ox, oy, 3*s, 3*s);
-  x.fillRect(ox + 11*s, oy, 3*s, 3*s);
-  x.fillStyle = charDef.pink;
-  x.fillRect(ox + 1*s, oy + 1*s, 1*s, 1*s);
-  x.fillRect(ox + 12*s, oy + 1*s, 1*s, 1*s);
+  x.fillStyle = bodyColor;
+  fill([[3,1],[4,1],[11,1],[12,1],[2,2],[3,2],[4,2],[11,2],[12,2],[13,2]]);
+  // Inner ears
+  x.fillStyle = pinkColor;
+  px(3, 2); px(12, 2);
 
   // Head
-  x.fillStyle = charDef.body;
-  for (let py = 2; py <= 9; py++)
-    for (let px = 1; px <= 12; px++)
-      x.fillRect(ox + px*s, oy + py*s, s, s);
+  x.fillStyle = bodyColor;
+  for (let py = 3; py <= 9; py++)
+    for (let ppx = 2; ppx <= 13; ppx++)
+      px(ppx, py);
 
   // Muzzle
-  x.fillStyle = charDef.belly;
+  x.fillStyle = bellyColor;
   for (let py = 6; py <= 9; py++)
-    for (let px = 4; px <= 9; px++)
-      x.fillRect(ox + px*s, oy + py*s, s, s);
+    for (let ppx = 5; ppx <= 10; ppx++)
+      px(ppx, py);
 
   // Eyes
-  x.fillStyle = charDef.eye;
-  x.fillRect(ox + 3*s, oy + 5*s, 2*s, 2*s);
-  x.fillRect(ox + 9*s, oy + 5*s, 2*s, 2*s);
+  x.fillStyle = eyeColor;
+  x.fillRect(ox + 4*s, oy + 5*s, 2*s, 2*s);
+  x.fillRect(ox + 10*s, oy + 5*s, 2*s, 2*s);
   x.fillStyle = '#fff';
-  x.fillRect(ox + 4*s, oy + 5*s, 1*s, 1*s);
-  x.fillRect(ox + 10*s, oy + 5*s, 1*s, 1*s);
+  px(5, 5); px(11, 5);
 
   // Nose
-  x.fillStyle = charDef.pink;
-  x.fillRect(ox + 6*s, oy + 7*s, 2*s, 1*s);
+  x.fillStyle = pinkColor;
+  x.fillRect(ox + 7*s, oy + 7*s, 2*s, s);
 
   // Cheeks
-  x.fillStyle = 'rgba(240,140,150,0.5)';
-  x.fillRect(ox + 2*s, oy + 7*s, 2*s, 1*s);
-  x.fillRect(ox + 10*s, oy + 7*s, 2*s, 1*s);
+  x.fillStyle = 'rgba(240,140,150,0.6)';
+  x.fillRect(ox + 3*s, oy + 7*s, 2*s, s);
+  x.fillRect(ox + 11*s, oy + 7*s, 2*s, s);
+
+  // Mouth
+  x.fillStyle = eyeColor;
+  px(7, 8); px(8, 8);
 
   // Star (ほしねこ)
   if (charDef.hasStar) {
     x.fillStyle = charDef.starColor;
-    x.fillRect(ox + 6*s, oy + 3*s, 2*s, 2*s);
-    x.fillRect(ox + 5*s, oy + 4*s, 1*s, 1*s);
-    x.fillRect(ox + 8*s, oy + 4*s, 1*s, 1*s);
+    x.fillRect(ox + 7*s, oy + 3*s, 2*s, 2*s);
+    px(6, 4); px(9, 4);
+    px(7, 2); px(8, 5);
   }
 
   // Stripes (curry)
   if (charDef.hasStripes) {
     x.fillStyle = charDef.bodyDark;
-    x.fillRect(ox + 3*s, oy + 3*s, 2*s, 1*s);
-    x.fillRect(ox + 9*s, oy + 3*s, 2*s, 1*s);
+    x.fillRect(ox + 4*s, oy + 3*s, 2*s, s);
+    x.fillRect(ox + 10*s, oy + 3*s, 2*s, s);
+    px(3, 4); px(12, 4);
   }
 
   // Glasses
   if (charDef.hasGlasses) {
     x.fillStyle = charDef.glassesColor;
     // Left lens
-    x.fillRect(ox + 2*s, oy + 4*s, 4*s, 1*s);
-    x.fillRect(ox + 2*s, oy + 7*s, 4*s, 1*s);
-    x.fillRect(ox + 2*s, oy + 4*s, 1*s, 4*s);
-    x.fillRect(ox + 5*s, oy + 4*s, 1*s, 4*s);
+    x.fillRect(ox + 3*s, oy + 4*s, 4*s, s);
+    x.fillRect(ox + 3*s, oy + 7*s, 4*s, s);
+    x.fillRect(ox + 3*s, oy + 4*s, s, 4*s);
+    x.fillRect(ox + 6*s, oy + 4*s, s, 4*s);
     // Right lens
-    x.fillRect(ox + 8*s, oy + 4*s, 4*s, 1*s);
-    x.fillRect(ox + 8*s, oy + 7*s, 4*s, 1*s);
-    x.fillRect(ox + 8*s, oy + 4*s, 1*s, 4*s);
-    x.fillRect(ox + 11*s, oy + 4*s, 1*s, 4*s);
+    x.fillRect(ox + 9*s, oy + 4*s, 4*s, s);
+    x.fillRect(ox + 9*s, oy + 7*s, 4*s, s);
+    x.fillRect(ox + 9*s, oy + 4*s, s, 4*s);
+    x.fillRect(ox + 12*s, oy + 4*s, s, 4*s);
     // Bridge
-    x.fillRect(ox + 5*s, oy + 5*s, 3*s, 1*s);
+    x.fillRect(ox + 6*s, oy + 5*s, 3*s, s);
     // Lens tint
     x.fillStyle = charDef.glassesLens;
-    x.fillRect(ox + 3*s, oy + 5*s, 2*s, 2*s);
-    x.fillRect(ox + 9*s, oy + 5*s, 2*s, 2*s);
+    x.fillRect(ox + 4*s, oy + 5*s, 2*s, 2*s);
+    x.fillRect(ox + 10*s, oy + 5*s, 2*s, 2*s);
   }
 
   // Body
-  x.fillStyle = charDef.body;
-  for (let px = 2; px <= 11; px++) {
-    x.fillRect(ox + px*s, oy + 10*s, s, s);
-    x.fillRect(ox + px*s, oy + 11*s, s, s);
+  x.fillStyle = bodyColor;
+  for (let ppx = 3; ppx <= 12; ppx++) {
+    px(ppx, 10); px(ppx, 11);
   }
-  x.fillStyle = charDef.belly;
-  for (let px = 4; px <= 9; px++)
-    x.fillRect(ox + px*s, oy + 11*s, s, s);
+  x.fillStyle = bellyColor;
+  for (let ppx = 5; ppx <= 10; ppx++)
+    px(ppx, 11);
 
   // Paws
-  x.fillStyle = charDef.body;
-  x.fillRect(ox + 2*s, oy + 12*s, 2*s, 1*s);
-  x.fillRect(ox + 10*s, oy + 12*s, 2*s, 1*s);
+  x.fillStyle = bodyColor;
+  x.fillRect(ox + 3*s, oy + 12*s, 2*s, s);
+  px(5, 12);
+  px(10, 12);
+  x.fillRect(ox + 11*s, oy + 12*s, 2*s, s);
 }
 
 function drawAllPreviews() {
