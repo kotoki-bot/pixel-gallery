@@ -100,6 +100,7 @@ canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edge
 #btn-switch:active { background: rgba(130,150,175,0.5); }
 
 /* Title screen */
+.has-route #title-screen { display: none !important; }
 #title-screen {
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;
   background: linear-gradient(180deg, #1a1520 0%, #2a2235 40%, #3a3050 100%);
@@ -214,6 +215,12 @@ canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edge
 </head>
 <body>
 
+<script>
+// Hide title screen immediately if hash route exists (prevent flash)
+if (location.hash && location.hash !== '#') {
+  document.documentElement.classList.add('has-route');
+}
+</script>
 <div id="title-screen">
   <div id="title-text">こなぬの美術館</div>
   <div id="welcome-doors">
@@ -231,6 +238,7 @@ canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edge
       <div class="welcome-door-preview">
         <canvas width="32" height="32" id="preview-moss"></canvas>
         <canvas width="32" height="32" id="preview-xx" style="opacity:0.6"></canvas>
+        <canvas width="32" height="32" id="preview-nick"></canvas>
       </div>
     </div>
   </div>
@@ -250,6 +258,11 @@ canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edge
       <div class="visitor-card-name" id="xx-card-name">👻 XXねこ</div>
       <div class="visitor-card-desc" id="xx-desc">ふわふわ半透明のゆうれいねこ</div>
     </div>
+    <div class="visitor-card" onclick="startVisitor('nick')" ontouchstart="event.preventDefault();startVisitor('nick')" style="border-color: #a8a0a0;">
+      <canvas width="48" height="48" id="card-nick"></canvas>
+      <div class="visitor-card-name" id="nick-card-name">📢 ニック</div>
+      <div class="visitor-card-desc" id="nick-desc">白とグレーのハーフフェイス！元気いっぱい</div>
+    </div>
   </div>
   <div id="visitor-back" onclick="hideVisitorScreen()" ontouchstart="event.preventDefault();hideVisitorScreen()">← もどる</div>
 </div>
@@ -266,6 +279,14 @@ canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edge
   border:2px solid #c9a96e; border-radius:4px;
   pointer-events:auto; opacity:0.7; transition:opacity 0.2s;
 " onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">← 派星岛</a>
+<button id="mode-btn" onclick="returnToTitle()" style="
+  display:none; align-items:center; box-sizing:border-box;
+  height:28px; line-height:1;
+  background:rgba(0,0,0,0.55); color:#c9a96e;
+  font-family:monospace; font-size:12px; padding:0 10px;
+  border:2px solid #c9a96e; border-radius:4px;
+  cursor:pointer; pointer-events:auto; opacity:0.7; transition:opacity 0.2s;
+" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">🏠</button>
 <button id="lang-btn" onclick="cycleLang()" style="
   display:inline-flex; align-items:center; box-sizing:border-box;
   height:28px; line-height:1;
@@ -324,6 +345,7 @@ const i18n = {
   galleryName:     { ja: 'こなぬの美術館', zh: 'こなぬ美术馆', en: 'Konanu Museum' },
   pressEnter:      { ja: '- PRESS ENTER -', zh: '- 按 ENTER 开始 -', en: '- PRESS ENTER -' },
   backIsland:      { ja: '← 派星岛', zh: '← 派星岛', en: '← Island' },
+  modeSelect:      { ja: '🏠 モード', zh: '🏠 模式', en: '🏠 Mode' },
   welcome:         { ja: 'ようこそ', zh: '欢迎光临', en: 'Welcome' },
   charCurry:       { ja: 'カレーねこ', zh: '咖喱猫', en: 'Curry Cat' },
   charHoshi:       { ja: 'ほしねこ', zh: '星星猫', en: 'Star Cat' },
@@ -339,8 +361,10 @@ const i18n = {
   visitorTag:      { ja: '🎟️ 訪客', zh: '🎟️ 访客', en: '🎟️ Visitor' },
   mossDesc:        { ja: '初めての訪客！好奇心旺盛なおしゃれねこ', zh: '第一位访客！好奇心旺盛的时髦小猫', en: 'First visitor! A curious, stylish cat' },
   xxDesc:          { ja: 'ふわふわ半透明のゆうれいねこ', zh: '飘飘忽忽的半透明幽灵小猫', en: 'A floaty, semi-transparent ghost cat' },
+  nickDesc:        { ja: '白とグレーのハーフフェイス！元気いっぱい', zh: '白灰半脸猫！元气满满', en: 'Half white, half grey — full of energy!' },
   mossCardName:    { ja: '🌿 モス', zh: '🌿 苔猫', en: '🌿 Moss' },
   xxCardName:      { ja: '👻 XXねこ', zh: '👻 叉叉猫', en: '👻 XX Cat' },
+  nickCardName:    { ja: '📢 ニック', zh: '📢 尼克', en: '📢 Nick' },
   welcomeVisitor:  { ja: 'ようこそ、{name}さん！', zh: '欢迎，{name}！', en: 'Welcome, {name}!' },
   tourComplete:    { ja: 'かんしょう おわり！🎨✨\nまた あそびにきてね！', zh: '鉴赏完毕！🎨✨\n下次再来玩哦！', en: 'Tour Complete! 🎨✨\nCome visit again!' },
 
@@ -453,6 +477,8 @@ function applyLang() {
   // Back button
   document.getElementById('back-to-island').textContent = t('backIsland');
   document.getElementById('back-to-island').title = t('backIsland');
+  // Mode button
+  document.getElementById('mode-btn').textContent = t('modeSelect');
   // Welcome doors
   document.getElementById('door-museum-title').textContent = t('enterMuseum');
   document.getElementById('door-museum-sub').textContent = t('enterSub');
@@ -463,8 +489,10 @@ function applyLang() {
   document.getElementById('visitor-back').textContent = t('backToTitle');
   document.getElementById('moss-desc').textContent = t('mossDesc');
   document.getElementById('xx-desc').textContent = t('xxDesc');
+  document.getElementById('nick-desc').textContent = t('nickDesc');
   document.getElementById('moss-card-name').textContent = t('mossCardName');
   document.getElementById('xx-card-name').textContent = t('xxCardName');
+  document.getElementById('nick-card-name').textContent = t('nickCardName');
   // Character indicator
   const ch = characters[currentChar];
   const nameText = currentLang === 'ja' ? ch.name_ja : (currentLang === 'zh' ? ch.name_zh : ch.name_en);
@@ -568,6 +596,31 @@ const characters = {
     isVisitor: true,
     isGhost: true,            // semi-transparent rendering!
     ghostAlpha: 0.6,          // base transparency
+  },
+  nick: {
+    name: 'ニック',
+    name_ja: 'ニック',
+    name_zh: '尼克',
+    name_en: 'Nick',
+    emoji: '📢',
+    body: '#e8e2da',          // warm off-white (main body)
+    bodyLight: '#f2ece4',
+    bodyDark: '#b8b0a8',      // grey patches on body
+    belly: '#f8f4ef',         // creamy white belly
+    pink: '#e8a0a8',          // pink nose
+    eye: '#3a3530',           // dark brown eyes
+    outline: '#4a443e',
+    hasStripes: false,
+    hasStar: false,
+    hasGlasses: false,
+    hasLashes: false,
+    isVisitor: true,
+    // Half-face: left=white, right=grey
+    hasSplitFace: true,
+    faceLeft: '#f2ece4',      // white side (left)
+    faceRight: '#a8a0a0',     // grey side (right)
+    earLeft: '#f2ece4',       // white ear
+    earRight: '#a09898',      // grey ear
   }
 };
 
@@ -594,7 +647,7 @@ let lastPawX = 0;            // last paw print X position
 const PAW_INTERVAL = 40;     // spawn every 40px
 const PAW_MAX_AGE = 180;     // 3 seconds at 60fps
 
-const visitorChars = ['moss', 'xx'];
+const visitorChars = ['moss', 'xx', 'nick'];
 const normalChars = ['curry', 'hoshi'];
 
 function switchCharacter() {
@@ -812,17 +865,34 @@ function getBenchRect(tx) {
 // ============================================================
 const titleScreen = document.getElementById('title-screen');
 const visitorScreen = document.getElementById('visitor-screen');
+const modeBtn = document.getElementById('mode-btn');
+let gameLoopRunning = false;
 
-function startMuseum() {
+function enterGame() {
+  // Remove has-route class so title screen can be shown again later
+  document.documentElement.classList.remove('has-route');
+  // Shared setup when entering any game mode
+  titleScreen.style.display = 'none';
+  visitorScreen.style.display = 'none';
+  modeBtn.style.display = 'inline-flex';
+  document.getElementById('btn-switch').style.display = 'flex';
+  if (!gameLoopRunning) {
+    gameLoopRunning = true;
+    requestAnimationFrame(gameLoop);
+  }
+}
+
+function startMuseum(fromHash) {
   if (gameStarted) return;
   gameStarted = true;
   isVisitorMode = false;
   currentChar = 'curry';
-  titleScreen.style.display = 'none';
-  visitorScreen.style.display = 'none';
-  document.getElementById('btn-switch').style.display = 'flex';
+  player.x = 64;
+  player.y = FLOOR_Y * TILE + 16;
+  player.facing = 1;
+  enterGame();
   updateCharUI();
-  requestAnimationFrame(gameLoop);
+  if (!fromHash) location.hash = '#museum';
 }
 
 function showVisitorScreen() {
@@ -836,23 +906,98 @@ function hideVisitorScreen() {
   titleScreen.style.display = 'flex';
 }
 
-function startVisitor(charId) {
+function startVisitor(charId, fromHash) {
   if (gameStarted) return;
   gameStarted = true;
   isVisitorMode = true;
   currentChar = charId;
-  titleScreen.style.display = 'none';
-  visitorScreen.style.display = 'none';
-  // Show switch button (cycles through visitors) and d-pad
-  document.getElementById('btn-switch').style.display = 'flex';
-  // Player starts at left
   player.x = 64;
   player.y = FLOOR_Y * TILE + 16;
   player.facing = 1;
+  enterGame();
   updateCharUI();
-  drawSwitchIcon(); // update switch icon for visitor cats
-  requestAnimationFrame(gameLoop);
+  drawSwitchIcon();
+  if (!fromHash) location.hash = '#visitor/' + charId;
 }
+
+function returnToTitle() {
+  // Stop game loop
+  gameStarted = false;
+  gameLoopRunning = false;
+  isVisitorMode = false;
+  isSitting = false;
+  nearArtwork = null;
+  nearBench = null;
+  // Reset tour state (visitor mode)
+  tourIndex = -1;
+  tourState = 'walk';
+  tourTimer = 0;
+  tourBubbleText = '';
+  tourBubbleOpacity = 0;
+  pawPrints.length = 0;
+  // Reset player
+  player.x = 64;
+  player.y = FLOOR_Y * TILE + 16;
+  player.vx = 0;
+  player.vy = 0;
+  cameraX = 0;
+  // Hide game UI
+  modeBtn.style.display = 'none';
+  document.getElementById('btn-switch').style.display = 'none';
+  document.getElementById('btn-interact').style.display = 'none';
+  document.getElementById('interact-prompt').style.display = 'none';
+  // Close modal if open
+  document.getElementById('modal-bg').style.display = 'none';
+  // Show title
+  visitorScreen.style.display = 'none';
+  titleScreen.style.display = 'flex';
+  location.hash = '';
+}
+
+// Hash routing
+function handleHash() {
+  const hash = location.hash.replace('#', '');
+  if (hash === 'museum') {
+    startMuseum(true);
+  } else if (hash.startsWith('visitor/')) {
+    const charId = hash.split('/')[1];
+    if (characters[charId] && characters[charId].isVisitor) {
+      startVisitor(charId, true);
+    }
+  }
+  // Default: show title screen (already visible)
+}
+
+window.addEventListener('popstate', () => {
+  if (gameStarted) {
+    // Reset state so we can re-enter
+    gameStarted = false;
+    gameLoopRunning = false;
+    isVisitorMode = false;
+    isSitting = false;
+    nearArtwork = null;
+    nearBench = null;
+    tourIndex = -1;
+    tourState = 'walk';
+    tourTimer = 0;
+    tourBubbleText = '';
+    tourBubbleOpacity = 0;
+    pawPrints.length = 0;
+    player.x = 64;
+    player.y = FLOOR_Y * TILE + 16;
+    player.vx = 0;
+    player.vy = 0;
+    cameraX = 0;
+    modeBtn.style.display = 'none';
+    document.getElementById('btn-switch').style.display = 'none';
+    document.getElementById('btn-interact').style.display = 'none';
+    document.getElementById('interact-prompt').style.display = 'none';
+    document.getElementById('modal-bg').style.display = 'none';
+    visitorScreen.style.display = 'none';
+    titleScreen.style.display = 'flex';
+  }
+  handleHash();
+});
 
 function updateCharUI() {
   const ch = characters[currentChar];
@@ -876,6 +1021,9 @@ titleScreen.addEventListener('touchstart', (e) => {
 document.addEventListener('keydown', (e) => {
   if (!gameStarted && (e.key === 'Enter' || e.key === ' ')) startGame();
 });
+
+// On page load, check hash for direct routing
+handleHash();
 
 // ============================================================
 // INPUT
@@ -1113,6 +1261,24 @@ function drawCharIcon() {
     for (let px = 2; px <= 13; px++) {
       x.fillRect(px, py, 1, 1);
     }
+  }
+  // Split face (Nick)
+  if (ch.hasSplitFace) {
+    x.fillStyle = ch.faceLeft;
+    for (let py = 3; py <= 9; py++)
+      for (let px = 2; px <= 7; px++)
+        x.fillRect(px, py, 1, 1);
+    x.fillStyle = ch.faceRight;
+    for (let py = 3; py <= 9; py++)
+      for (let px = 8; px <= 13; px++)
+        x.fillRect(px, py, 1, 1);
+    // Ears override
+    x.fillStyle = ch.earLeft;
+    [[3,1],[4,1],[2,2],[3,2],[4,2]].forEach(([px,py]) => x.fillRect(px, py, 1, 1));
+    x.fillStyle = ch.earRight;
+    [[11,1],[12,1],[11,2],[12,2],[13,2]].forEach(([px,py]) => x.fillRect(px, py, 1, 1));
+    x.fillStyle = pinkColor;
+    x.fillRect(3, 2, 1, 1); x.fillRect(12, 2, 1, 1);
   }
   // face/muzzle
   x.fillStyle = bellyColor;
@@ -1571,9 +1737,25 @@ function drawBench(tx) {
 
 function drawWelcomeSign() {
   const signX = 1 * TILE - cameraX;
-  if (signX > -120 && signX < canvas.width + 120) {
-    // Wider sign for visitor welcome
-    const signW = isVisitorMode ? 120 : 88;
+  if (signX > -200 && signX < canvas.width + 200) {
+    // Measure text to auto-size the sign
+    ctx.font = 'bold 13px monospace';
+    let topText;
+    if (isVisitorMode) {
+      const ch = characters[currentChar];
+      const name = currentLang === 'ja' ? ch.name_ja : (currentLang === 'zh' ? ch.name_zh : ch.name_en);
+      topText = (t('welcomeVisitor') || 'Welcome!').replace('{name}', name);
+    } else {
+      topText = t('welcome');
+    }
+    ctx.font = '10px monospace';
+    const bottomText = t('galleryName');
+    ctx.font = 'bold 13px monospace';
+    const topW = ctx.measureText(topText).width;
+    ctx.font = '10px monospace';
+    const bottomW = ctx.measureText(bottomText).width;
+    const signW = Math.max(topW, bottomW) + 24; // 12px padding each side
+
     drawRectAbs(Math.round(signX), 6 * TILE + 8, signW, 48, '#2a2235');
     drawRectAbs(Math.round(signX) - 2, 6 * TILE + 6, signW + 4, 2, C.frameGold);
     drawRectAbs(Math.round(signX) - 2, 6 * TILE + 54, signW + 4, 2, C.frameGold);
@@ -1582,17 +1764,10 @@ function drawWelcomeSign() {
     ctx.fillStyle = '#f5e6d0';
     ctx.font = 'bold 13px monospace';
     ctx.textAlign = 'center';
-    if (isVisitorMode) {
-      const ch = characters[currentChar];
-      const name = currentLang === 'ja' ? ch.name_ja : (currentLang === 'zh' ? ch.name_zh : ch.name_en);
-      const welcomeText = t('welcomeVisitor') || 'Welcome!';
-      ctx.fillText(welcomeText.replace('{name}', name), Math.round(signX) + signW/2, 6 * TILE + 28);
-    } else {
-      ctx.fillText(t('welcome'), Math.round(signX) + signW/2, 6 * TILE + 28);
-    }
+    ctx.fillText(topText, Math.round(signX) + signW/2, 6 * TILE + 28);
     ctx.font = '10px monospace';
     ctx.fillStyle = '#c9a96e';
-    ctx.fillText(t('galleryName'), Math.round(signX) + signW/2, 6 * TILE + 44);
+    ctx.fillText(bottomText, Math.round(signX) + signW/2, 6 * TILE + 44);
     ctx.textAlign = 'left';
   }
 }
@@ -1657,13 +1832,27 @@ function drawPlayer() {
     const hw = 10*S, hh = 9*S;
     ctx.fillStyle = ch.body;
     ctx.fillRect(hx, hy, hw, hh);
+    // Split face (Nick: left=white, right=grey)
+    if (ch.hasSplitFace) {
+      ctx.fillStyle = ch.faceLeft;
+      ctx.fillRect(hx, hy, hw / 2, hh);
+      ctx.fillStyle = ch.faceRight;
+      ctx.fillRect(hx + hw / 2, hy, hw / 2, hh);
+    }
     ctx.fillStyle = ch.belly;
     ctx.fillRect(hx + 2*S, hy + 4*S, 6*S, 4*S);
 
     // Ears
-    ctx.fillStyle = ch.body;
-    ctx.fillRect(hx, hy - 3*S, 3*S, 3*S);
-    ctx.fillRect(hx + hw - 3*S, hy - 3*S, 3*S, 3*S);
+    if (ch.hasSplitFace) {
+      ctx.fillStyle = ch.earLeft;
+      ctx.fillRect(hx, hy - 3*S, 3*S, 3*S);
+      ctx.fillStyle = ch.earRight;
+      ctx.fillRect(hx + hw - 3*S, hy - 3*S, 3*S, 3*S);
+    } else {
+      ctx.fillStyle = ch.body;
+      ctx.fillRect(hx, hy - 3*S, 3*S, 3*S);
+      ctx.fillRect(hx + hw - 3*S, hy - 3*S, 3*S, 3*S);
+    }
     ctx.fillStyle = ch.pink;
     ctx.fillRect(hx + 1*S, hy - 2*S, 1*S, 2*S);
     ctx.fillRect(hx + hw - 2*S, hy - 2*S, 1*S, 2*S);
@@ -1815,13 +2004,31 @@ function drawPlayer() {
   const hw = 10*S, hh = 9*S;
   ctx.fillStyle = ch.body;
   ctx.fillRect(hx, hy, hw, hh);
+  // Split face (Nick: left=white, right=grey — flips with facing)
+  if (ch.hasSplitFace) {
+    const leftColor = f === 1 ? ch.faceLeft : ch.faceRight;
+    const rightColor = f === 1 ? ch.faceRight : ch.faceLeft;
+    ctx.fillStyle = leftColor;
+    ctx.fillRect(hx, hy, hw / 2, hh);
+    ctx.fillStyle = rightColor;
+    ctx.fillRect(hx + hw / 2, hy, hw / 2, hh);
+  }
   ctx.fillStyle = ch.belly;
   ctx.fillRect(hx + 2*S, hy + 4*S, 6*S, 4*S);
 
   // Ears
-  ctx.fillStyle = ch.body;
-  ctx.fillRect(hx, hy - 3*S, 3*S, 3*S);
-  ctx.fillRect(hx + hw - 3*S, hy - 3*S, 3*S, 3*S);
+  if (ch.hasSplitFace) {
+    const leftEar = f === 1 ? ch.earLeft : ch.earRight;
+    const rightEar = f === 1 ? ch.earRight : ch.earLeft;
+    ctx.fillStyle = leftEar;
+    ctx.fillRect(hx, hy - 3*S, 3*S, 3*S);
+    ctx.fillStyle = rightEar;
+    ctx.fillRect(hx + hw - 3*S, hy - 3*S, 3*S, 3*S);
+  } else {
+    ctx.fillStyle = ch.body;
+    ctx.fillRect(hx, hy - 3*S, 3*S, 3*S);
+    ctx.fillRect(hx + hw - 3*S, hy - 3*S, 3*S, 3*S);
+  }
   ctx.fillStyle = ch.pink;
   ctx.fillRect(hx + 1*S, hy - 2*S, 1*S, 2*S);
   ctx.fillRect(hx + hw - 2*S, hy - 2*S, 1*S, 2*S);
@@ -2008,31 +2215,43 @@ function update() {
   if (newY > maxY) newY = maxY;
 
   // ── Floor top boundary ──
-  // Cat's feet cannot go above the floor edge
+  // Ghost cats can walk past the rope into the dark wainscoting area,
+  // stopping at the wainscoting/upper-wall boundary. Normal cats stop at floor top.
+  const ch = characters[currentChar];
   const floorTopY = FLOOR_Y * TILE;
-  if (newY + player.h < floorTopY) {
-    newY = floorTopY - player.h;
+  if (ch.isGhost) {
+    // Ghost stops at the wainscoting top (row 11) — where dark panel meets light wall
+    const ghostTopY = 11 * TILE;
+    if (newY + player.h < ghostTopY) {
+      newY = ghostTopY - player.h;
+    }
+  } else {
+    if (newY + player.h < floorTopY) {
+      newY = floorTopY - player.h;
+    }
   }
 
-  // ── Bench collision — cat can't walk through bench at all ──
-  // Collision line = bottom of bench legs (full bench height)
-  for (let i = 0; i < benchPositions.length; i++) {
-    const bx = benchPositions[i] * TILE;
-    const benchTop = BENCH_Y;                    // top of bench seat
-    const benchBottom = BENCH_Y + BENCH_H + 18;  // bottom of bench legs
+  // ── Bench collision — ghost cats phase through! ──
+  if (!ch.isGhost) {
+    // Collision line = bottom of bench legs (full bench height)
+    for (let i = 0; i < benchPositions.length; i++) {
+      const bx = benchPositions[i] * TILE;
+      const benchTop = BENCH_Y;                    // top of bench seat
+      const benchBottom = BENCH_Y + BENCH_H + 18;  // bottom of bench legs
 
-    // Check horizontal overlap with bench
-    if (newX + player.w > bx - 4 && newX < bx + BENCH_W + 4) {
-      const oldFoot = player.y + player.h;
-      const newFoot = newY + player.h;
+      // Check horizontal overlap with bench
+      if (newX + player.w > bx - 4 && newX < bx + BENCH_W + 4) {
+        const oldFoot = player.y + player.h;
+        const newFoot = newY + player.h;
 
-      // Case 1: Was above bench, trying to move feet below bench top → block (foot=520)
-      if (oldFoot <= benchTop + 8 && newFoot > benchTop + 8) {
-        newY = benchTop + 8 - player.h;
-      }
-      // Case 2: Was below bench legs, trying to move feet above bench bottom → block (foot=550)
-      if (oldFoot >= benchBottom + 4 && newFoot < benchBottom + 4) {
-        newY = benchBottom + 4 - player.h;
+        // Case 1: Was above bench, trying to move feet below bench top → block (foot=520)
+        if (oldFoot <= benchTop + 8 && newFoot > benchTop + 8) {
+          newY = benchTop + 8 - player.h;
+        }
+        // Case 2: Was below bench legs, trying to move feet above bench bottom → block (foot=550)
+        if (oldFoot >= benchBottom + 4 && newFoot < benchBottom + 4) {
+          newY = benchBottom + 4 - player.h;
+        }
       }
     }
   }
@@ -2133,6 +2352,7 @@ function update() {
 // ============================================================
 function updateVisitorMode() {
   // Position player on the floor (near the wall, where artworks are visible)
+  // Ghost cats can float higher, so use a more generous bound
   const floorTopY = FLOOR_Y * TILE;
   if (player.y === 0 || player.y < floorTopY - player.h) {
     player.y = floorTopY - player.h + 10; // slightly into floor area
@@ -2399,6 +2619,28 @@ function drawPreviewCat(canvasId, charDef, size) {
     for (let ppx = 2; ppx <= 13; ppx++)
       px(ppx, py);
 
+  // Split face overlay (Nick: left=white, right=grey)
+  if (charDef.hasSplitFace) {
+    // Left half of head (columns 2-7) — white
+    x.fillStyle = charDef.faceLeft;
+    for (let py = 3; py <= 9; py++)
+      for (let ppx = 2; ppx <= 7; ppx++)
+        px(ppx, py);
+    // Right half of head (columns 8-13) — grey
+    x.fillStyle = charDef.faceRight;
+    for (let py = 3; py <= 9; py++)
+      for (let ppx = 8; ppx <= 13; ppx++)
+        px(ppx, py);
+    // Ears override
+    x.fillStyle = charDef.earLeft;
+    fill([[3,1],[4,1],[2,2],[3,2],[4,2]]);
+    x.fillStyle = charDef.earRight;
+    fill([[11,1],[12,1],[11,2],[12,2],[13,2]]);
+    // Inner ears (pink)
+    x.fillStyle = pinkColor;
+    px(3, 2); px(12, 2);
+  }
+
   // Muzzle
   x.fillStyle = bellyColor;
   for (let py = 6; py <= 9; py++)
@@ -2497,8 +2739,10 @@ function drawAllPreviews() {
   drawPreviewCat('preview-hoshi', characters.hoshi, 2);
   drawPreviewCat('preview-moss', characters.moss, 2);
   drawPreviewCat('preview-xx', characters.xx, 2);
+  drawPreviewCat('preview-nick', characters.nick, 2);
   drawPreviewCat('card-moss', characters.moss, 3);
   drawPreviewCat('card-xx', characters.xx, 3);
+  drawPreviewCat('card-nick', characters.nick, 3);
 }
 
 // ============================================================
@@ -2573,6 +2817,7 @@ function render() {
 // GAME LOOP
 // ============================================================
 function gameLoop() {
+  if (!gameLoopRunning) return;
   update();
   render();
   requestAnimationFrame(gameLoop);
