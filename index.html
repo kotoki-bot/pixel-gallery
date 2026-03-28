@@ -1011,13 +1011,6 @@ function startGame() {
   // Legacy — Enter key starts museum mode
   startMuseum();
 }
-titleScreen.addEventListener('click', (e) => {
-  // Only start if clicking outside the doors (for accessibility)
-  if (e.target === titleScreen) startGame();
-});
-titleScreen.addEventListener('touchstart', (e) => {
-  if (e.target === titleScreen) { e.preventDefault(); startGame(); }
-});
 document.addEventListener('keydown', (e) => {
   if (!gameStarted && (e.key === 'Enter' || e.key === ' ')) startGame();
 });
