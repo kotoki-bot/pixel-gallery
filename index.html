@@ -410,6 +410,12 @@ const i18n = {
                    zh: '六本木的屋顶，二日月的夜晚。\n东京塔闪闪发光。带了罐装咖啡。\n咖喱猫和星星猫，爪爪挨在一起。\n什么都不用说，就喜欢这样的夜晚。🌙🐾',
                    en: 'A Roppongi rooftop, under the thinnest crescent.\nTokyo Tower glitters. Canned coffee in hand.\nCurry Cat and Star Cat, paws touching.\nNo words needed — this kind of night is the best. 🌙🐾' },
     },
+    train_sunset: {
+      title:     { ja: '夕方の電車', zh: '夕阳电车', en: 'Sunset Train' },
+      desc:      { ja: '金曜日の夕方、帰りの電車。\nカレーねこはうとうと居眠り…💤\nほしねこは窓の外の夕焼けをぼーっと見てる。\nつり革がゆれて、街のシルエットがオレンジに染まって。\nこういう時間がいちばんしあわせだぬ。🚃🌇',
+                   zh: '周五傍晚，回家的电车。\n咖喱猫打着瞌睡…💤\n星星猫望着窗外的夕阳发呆。\n吊环轻轻摇晃，城市的轮廓被染成橙色。\n这样的时光最幸福了。🚃🌇',
+                   en: 'Friday evening, on the train home.\nCurry Cat dozes off… 💤\nStar Cat gazes at the sunset through the window.\nThe straps sway gently, the city silhouette glows orange.\nMoments like these are the happiest. 🚃🌇' },
+    },
   }
 };
 
@@ -475,7 +481,7 @@ function applyLang() {
 }
 
 const TILE = 32;
-const GALLERY_W = 3392;   // 106 tiles wide (auto-sized for 10 artworks)
+const GALLERY_W = 3712;   // 116 tiles wide (auto-sized for 11 artworks)
 const GALLERY_H = 640;    // 20 tiles tall (taller canvas = more wall + floor)
 const FLOOR_Y = 13;       // floor starts at row 13 (tall wall for frames + cards)
 const FLOOR_BOTTOM = 19;  // floor ends at row 19
@@ -685,6 +691,14 @@ const artworks = [
     date: '2026-03-26',
     wallX: 95,
     pw: 64, ph: 32
+  },
+  {
+    id: 'train_sunset',
+    src: 'artworks/train_sunset.png',
+    artist: 'こなぬ',
+    date: '2026-03-28',
+    wallX: 105,
+    pw: 64, ph: 32
   }
 ];
 
@@ -785,7 +799,7 @@ let isSitting = false;
 let sitBenchIdx = -1;
 
 // Bench world positions (tile X) and collision boxes
-const benchPositions = [11, 20, 30, 40, 50, 60, 70, 80, 90];
+const benchPositions = [11, 20, 30, 40, 50, 60, 70, 80, 90, 100];
 const BENCH_W = 96, BENCH_H = 16;
 const BENCH_Y = 16 * TILE; // center of the floor walking area
 
@@ -2517,6 +2531,7 @@ function render() {
   drawPlant(82);
   drawPlant(92);
   drawPlant(102);
+  drawPlant(112);
 
   // Welcome sign (on wall, always behind)
   drawWelcomeSign();
