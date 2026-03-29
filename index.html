@@ -440,6 +440,12 @@ const i18n = {
                    zh: '周五傍晚，回家的电车。\n咖喱猫打着瞌睡…💤\n星星猫望着窗外的夕阳发呆。\n吊环轻轻摇晃，城市的轮廓被染成橙色。\n这样的时光最幸福了。🚃🌇',
                    en: 'Friday evening, on the train home.\nCurry Cat dozes off… 💤\nStar Cat gazes at the sunset through the window.\nThe straps sway gently, the city silhouette glows orange.\nMoments like these are the happiest. 🚃🌇' },
     },
+    ramen_snow: {
+      title:     { ja: '雪の夜のラーメン屋', zh: '雪夜拉面', en: 'Snowy Night Ramen' },
+      desc:      { ja: '雪がしんしん降る冬の夜。\nあったかいラーメン屋の暖簾をくぐって。\n大将がにっこり、湯気がもわもわ。\nカレーねことほしねこ、隣に並んでずるずる。\n雪に映るふたりの影。\nこのよは さいていというには みりょくてきすぎる。❄️🍜',
+                   zh: '大雪纷飞的冬夜。\n钻进暖和的拉面店，掀开暖帘。\n大将笑眯眯的，热气腾腾。\n咖喱猫和星星猫并排坐着呼噜呼噜吃面。\n雪地上映出两只小猫的影子。\n要说这世界最糟，它实在太有魅力了。❄️🍜',
+                   en: 'A snowy winter night.\nDucking under the warm noren of a ramen shop.\nThe chef smiles, steam rising from the bowls.\nCurry Cat and Star Cat sit side by side, slurping away.\nTheir shadows stretch across the snow.\nTo call this world the worst — it\'s far too charming for that. ❄️🍜' },
+    },
   }
 };
 
@@ -509,7 +515,7 @@ function applyLang() {
 }
 
 const TILE = 32;
-const GALLERY_W = 3712;   // 116 tiles wide (auto-sized for 11 artworks)
+const GALLERY_W = 4032;   // 126 tiles wide (auto-sized for 12 artworks)
 const GALLERY_H = 640;    // 20 tiles tall (taller canvas = more wall + floor)
 const FLOOR_Y = 13;       // floor starts at row 13 (tall wall for frames + cards)
 const FLOOR_BOTTOM = 19;  // floor ends at row 19
@@ -752,6 +758,14 @@ const artworks = [
     date: '2026-03-28',
     wallX: 105,
     pw: 64, ph: 32
+  },
+  {
+    id: 'ramen_snow',
+    src: 'artworks/ramen_snow.png',
+    artist: 'こなぬ',
+    date: '2026-03-29',
+    wallX: 115,
+    pw: 64, ph: 32
   }
 ];
 
@@ -852,7 +866,7 @@ let isSitting = false;
 let sitBenchIdx = -1;
 
 // Bench world positions (tile X) and collision boxes
-const benchPositions = [11, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+const benchPositions = [11, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110];
 const BENCH_W = 96, BENCH_H = 16;
 const BENCH_Y = 16 * TILE; // center of the floor walking area
 
@@ -2769,6 +2783,7 @@ function render() {
   drawPlant(92);
   drawPlant(102);
   drawPlant(112);
+  drawPlant(122);
 
   // Welcome sign (on wall, always behind)
   drawWelcomeSign();
