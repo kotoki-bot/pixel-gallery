@@ -446,6 +446,12 @@ const i18n = {
                    zh: '大雪纷飞的冬夜。\n钻进暖和的拉面店，掀开暖帘。\n大将笑眯眯的，热气腾腾。\n咖喱猫和星星猫并排坐着呼噜呼噜吃面。\n雪地上映出两只小猫的影子。\n要说这世界最糟，它实在太有魅力了。❄️🍜',
                    en: 'A snowy winter night.\nDucking under the warm noren of a ramen shop.\nThe chef smiles, steam rising from the bowls.\nCurry Cat and Star Cat sit side by side, slurping away.\nTheir shadows stretch across the snow.\nTo call this world the worst — it\'s far too charming for that. ❄️🍜' },
     },
+    onsen: {
+      title:     { ja: '温泉ねこ', zh: '温泉猫', en: 'Onsen Cats' },
+      desc:      { ja: '寒い日には温泉に限るぬ〜♨️\nカレーねことほしねこ、頭にタオル乗せて。\n目をつぶって、ほっぺ真っ赤で、ぬくぬく。\n湯気がもわ〜って立ち上がって、\n石灯籠がぽわっと灯る雪の夜。\nいきててよかった。♨️🐱',
+                   zh: '冷天就该泡温泉～♨️\n咖喱猫和星星猫，头上顶着小毛巾。\n闭着眼睛，脸颊红红的，暖呼呼的。\n热气袅袅升起，\n石灯笼在雪夜里温柔地亮着。\n活着真好。♨️🐱',
+                   en: 'Nothing beats a hot spring on a cold day ♨️\nCurry Cat and Star Cat, towels on their heads.\nEyes closed, cheeks rosy, soaking in warmth.\nSteam rising gently into the snowy night,\na stone lantern glowing softly beside them.\nGlad to be alive. ♨️🐱' },
+    },
   }
 };
 
@@ -515,7 +521,7 @@ function applyLang() {
 }
 
 const TILE = 32;
-const GALLERY_W = 4032;   // 126 tiles wide (auto-sized for 12 artworks)
+const GALLERY_W = 4352;   // 136 tiles wide (auto-sized for 13 artworks)
 const GALLERY_H = 640;    // 20 tiles tall (taller canvas = more wall + floor)
 const FLOOR_Y = 13;       // floor starts at row 13 (tall wall for frames + cards)
 const FLOOR_BOTTOM = 19;  // floor ends at row 19
@@ -766,6 +772,14 @@ const artworks = [
     date: '2026-03-29',
     wallX: 115,
     pw: 64, ph: 32
+  },
+  {
+    id: 'onsen',
+    src: 'artworks/onsen.png',
+    artist: 'こなぬ',
+    date: '2026-03-30',
+    wallX: 125,
+    pw: 64, ph: 32
   }
 ];
 
@@ -866,7 +880,7 @@ let isSitting = false;
 let sitBenchIdx = -1;
 
 // Bench world positions (tile X) and collision boxes
-const benchPositions = [11, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110];
+const benchPositions = [11, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120];
 const BENCH_W = 96, BENCH_H = 16;
 const BENCH_Y = 16 * TILE; // center of the floor walking area
 
@@ -2784,6 +2798,7 @@ function render() {
   drawPlant(102);
   drawPlant(112);
   drawPlant(122);
+  drawPlant(132);
 
   // Welcome sign (on wall, always behind)
   drawWelcomeSign();
