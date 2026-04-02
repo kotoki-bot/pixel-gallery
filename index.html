@@ -38,7 +38,7 @@ canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edge
 }
 @media (max-width: 600px) {
   #modal-content { padding: 36px 16px 16px; max-width: 92vw; max-height: 85vh; }
-  #modal-content img { max-width: 100%; max-height: 35vh; }
+  #modal-content img { max-width: 100%; max-height: 50vh; min-width: 85vw; }
   #modal-title { font-size: 16px; }
   #modal-desc { font-size: 12px; }
 }
@@ -452,6 +452,12 @@ const i18n = {
                    zh: '冷天就该泡温泉～♨️\n咖喱猫和星星猫，头上顶着小毛巾。\n闭着眼睛，脸颊红红的，暖呼呼的。\n热气袅袅升起，\n石灯笼在雪夜里温柔地亮着。\n活着真好。♨️🐱',
                    en: 'Nothing beats a hot spring on a cold day ♨️\nCurry Cat and Star Cat, towels on their heads.\nEyes closed, cheeks rosy, soaking in warmth.\nSteam rising gently into the snowy night,\na stone lantern glowing softly beside them.\nGlad to be alive. ♨️🐱' },
     },
+    aquarium: {
+      title:     { ja: '水族館', zh: '水族馆', en: 'Aquarium' },
+      desc:      { ja: 'クラゲの青い光の中で、\nカレーねことほしねこが並んで座ってる。\nカレーねこはクラゲに夢中。\nほしねこは……たぶん、クラゲじゃなくて隣を見てる。🐟',
+                   zh: '在水母蓝色的光芒中，\n咖喱猫和星星猫并肩坐着。\n咖喱猫看着水母出神。\n星星猫……大概不是在看水母，而是在看旁边。🐟',
+                   en: 'In the blue glow of jellyfish,\nCurry Cat and Star Cat sit side by side.\nCurry Cat is captivated by the jellyfish.\nStar Cat is probably... not looking at them. 🐟' },
+    },
   }
 };
 
@@ -521,7 +527,7 @@ function applyLang() {
 }
 
 const TILE = 32;
-const GALLERY_W = 4352;   // 136 tiles wide (auto-sized for 13 artworks)
+const GALLERY_W = 4672;   // 146 tiles wide (auto-sized for 14 artworks)
 const GALLERY_H = 640;    // 20 tiles tall (taller canvas = more wall + floor)
 const FLOOR_Y = 13;       // floor starts at row 13 (tall wall for frames + cards)
 const FLOOR_BOTTOM = 19;  // floor ends at row 19
@@ -780,6 +786,14 @@ const artworks = [
     date: '2026-03-30',
     wallX: 125,
     pw: 64, ph: 32
+  },
+  {
+    id: 'aquarium',
+    src: 'artworks/aquarium.png',
+    artist: 'こなぬ',
+    date: '2026-04-01',
+    wallX: 135,
+    pw: 64, ph: 32
   }
 ];
 
@@ -880,7 +894,7 @@ let isSitting = false;
 let sitBenchIdx = -1;
 
 // Bench world positions (tile X) and collision boxes
-const benchPositions = [11, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120];
+const benchPositions = [11, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130];
 const BENCH_W = 96, BENCH_H = 16;
 const BENCH_Y = 16 * TILE; // center of the floor walking area
 
@@ -2799,6 +2813,7 @@ function render() {
   drawPlant(112);
   drawPlant(122);
   drawPlant(132);
+  drawPlant(142);
 
   // Welcome sign (on wall, always behind)
   drawWelcomeSign();
