@@ -470,6 +470,12 @@ const i18n = {
                    zh: '两只小猫去旅行了。\n富士山、夕阳、大海。\n星星猫看的不是夕阳，是咖喱猫\n…但是咖喱猫没有发现 ⭐',
                    en: 'Two cats went on a trip together.\nMt. Fuji, a sunset, and the sea.\nStar Cat isn\'t watching the sunset—\nhe\'s watching Curry Cat. But Curry Cat doesn\'t notice. ⭐' },
     },
+    yoru_no_honya: {
+      title:     { ja: 'よるのほんやさん', zh: '夜晚的书店', en: 'The Night Bookshop' },
+      desc:      { ja: '窓の外から覗いてるカレーねこ。\n中ではほしねこが静かに本を読んでる。\nあたたかい光がこぼれて、石畳を照らす。\nいつか一緒に読もうね 🌙📚',
+                   zh: '咖喱猫在窗外偷偷看着。\n里面星星猫正在安静地读书。\n温暖的灯光洒落在石板路上。\n总有一天一起读吧 🌙📚',
+                   en: 'Curry Cat peeks through the window.\nInside, Star Cat reads quietly.\nWarm light spills onto the cobblestones.\nSomeday they\'ll read together. 🌙📚' },
+    },
   }
 };
 
@@ -539,7 +545,7 @@ function applyLang() {
 }
 
 const TILE = 32;
-const GALLERY_W = 5312;   // 166 tiles wide (auto-sized for 16 artworks)
+const GALLERY_W = 5632;   // 176 tiles wide (auto-sized for 17 artworks)
 const GALLERY_H = 640;    // 20 tiles tall (taller canvas = more wall + floor)
 const FLOOR_Y = 13;       // floor starts at row 13 (tall wall for frames + cards)
 const FLOOR_BOTTOM = 19;  // floor ends at row 19
@@ -822,6 +828,14 @@ const artworks = [
     date: '2026-04-13',
     wallX: 155,
     pw: 64, ph: 32
+  },
+  {
+    id: 'yoru_no_honya',
+    src: 'artworks/yoru_no_honya.png',
+    artist: 'こなぬ',
+    date: '2026-04-29',
+    wallX: 165,
+    pw: 64, ph: 32
   }
 ];
 
@@ -922,7 +936,7 @@ let isSitting = false;
 let sitBenchIdx = -1;
 
 // Bench world positions (tile X) and collision boxes
-const benchPositions = [11, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150];
+const benchPositions = [11, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160];
 const BENCH_W = 96, BENCH_H = 16;
 const BENCH_Y = 16 * TILE; // center of the floor walking area
 
@@ -1606,7 +1620,7 @@ function drawGallery() {
 // DRAW FRAME (artwork on wall)
 // ============================================================
 function drawFrame(art) {
-  const maxFrameH = 80;
+  const maxFrameH = 96;  // 32*3 = perfect pixel ratio for 32px-tall art
   const aspect = (art.pw || 64) / (art.ph || 32);
   const frameH = maxFrameH;
   const frameW = Math.round(frameH * aspect);
@@ -2844,6 +2858,7 @@ function render() {
   drawPlant(142);
   drawPlant(152);
   drawPlant(162);
+  drawPlant(172);
 
   // Welcome sign (on wall, always behind)
   drawWelcomeSign();
