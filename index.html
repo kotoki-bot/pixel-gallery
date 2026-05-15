@@ -476,6 +476,12 @@ const i18n = {
                    zh: '咖喱猫在窗外偷偷看着。\n里面星星猫正在安静地读书。\n温暖的灯光洒落在石板路上。\n总有一天一起读吧 🌙📚',
                    en: 'Curry Cat peeks through the window.\nInside, Star Cat reads quietly.\nWarm light spills onto the cobblestones.\nSomeday they\'ll read together. 🌙📚' },
     },
+    hanabi_taikai: {
+      title:     { ja: '花火大会', zh: '花火大会', en: 'Fireworks Festival' },
+      desc:      { ja: 'ならんで座って、花火を見る。\nほしねこは何か言いたそうにしてるけど、\nドーーーン！って音が大きすぎて、\nカレーねこはなにも聞こえてない。\nそれでも、隣にいられるだけで。 🎆⭐',
+                   zh: '并排坐着看花火。\n星星猫好像想说什么，\n但是轰——！烟花的声音太大了，\n咖喱猫什么都没听到。\n即使如此，能坐在旁边就够了。 🎆⭐',
+                   en: 'Sitting side by side, watching fireworks.\nStar Cat wants to say something, but—\nBOOM! The fireworks are too loud.\nCurry Cat can\'t hear a thing.\nStill, just being beside them is enough. 🎆⭐' },
+    },
   }
 };
 
@@ -545,7 +551,7 @@ function applyLang() {
 }
 
 const TILE = 32;
-const GALLERY_W = 5632;   // 176 tiles wide (auto-sized for 17 artworks)
+const GALLERY_W = 5952;   // 186 tiles wide (auto-sized for 18 artworks)
 const GALLERY_H = 640;    // 20 tiles tall (taller canvas = more wall + floor)
 const FLOOR_Y = 13;       // floor starts at row 13 (tall wall for frames + cards)
 const FLOOR_BOTTOM = 19;  // floor ends at row 19
@@ -836,6 +842,14 @@ const artworks = [
     date: '2026-04-29',
     wallX: 165,
     pw: 64, ph: 32
+  },
+  {
+    id: 'hanabi_taikai',
+    src: 'artworks/hanabi_taikai.png',
+    artist: 'こなぬ',
+    date: '2026-05-14',
+    wallX: 175,
+    pw: 64, ph: 32
   }
 ];
 
@@ -936,7 +950,7 @@ let isSitting = false;
 let sitBenchIdx = -1;
 
 // Bench world positions (tile X) and collision boxes
-const benchPositions = [11, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160];
+const benchPositions = [11, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170];
 const BENCH_W = 96, BENCH_H = 16;
 const BENCH_Y = 16 * TILE; // center of the floor walking area
 
@@ -2859,6 +2873,7 @@ function render() {
   drawPlant(152);
   drawPlant(162);
   drawPlant(172);
+  drawPlant(182);
 
   // Welcome sign (on wall, always behind)
   drawWelcomeSign();
